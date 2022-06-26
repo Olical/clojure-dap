@@ -1,0 +1,3 @@
+= Clojure CIDER DAP server
+
+Soon! Working on some very basic https://github.com/Olical/conjure[Conjure] debugger support first, this will be the recommended successor.
