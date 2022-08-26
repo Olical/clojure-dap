@@ -3,4 +3,4 @@
 
 (defn run [opts]
   (pp/pprint opts)
-  (println "Hello, World!"))
+  (println "Hello, Twitch and YouTube!"))
