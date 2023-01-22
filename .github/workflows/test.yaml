@@ -35,4 +35,4 @@ jobs:
           cli: 1.11.1.1208
 
       - name: Run Unit tests
-        run: ./script/test
+        run: ./script/kaocha
