@@ -37,7 +37,7 @@ jobs:
           context: .
           # Note: tags has to be all lower-case
           tags: |
-            ghcr.io/olical/clojure-dap:$GITHUB_SHA
+            ghcr.io/olical/clojure-dap:${{ github.sha }}
           # always build and push, regardless of branch
           # images are tagged with the git sha
           push: true
