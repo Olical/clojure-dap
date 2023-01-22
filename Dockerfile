@@ -1,4 +1,6 @@
-FROM clojure:temurin-18-tools-deps-1.11.1.1155-alpine
+FROM clojure:temurin-19-tools-deps-1.11.1.1208-alpine
+
+# Sun 22 Jan 11:38:06 GMT 2023
 
 RUN apk update
 RUN apk add rlwrap
