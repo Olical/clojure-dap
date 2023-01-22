@@ -1,3 +1,12 @@
 = Clojure CIDER DAP server
 
 Soon! Working on some very basic https://github.com/Olical/conjure[Conjure] debugger support first, this will be the recommended successor.
+
+Useful links for development:
+
+ * https://microsoft.github.io/debug-adapter-protocol/overview
+ * https://microsoft.github.io/debug-adapter-protocol/specification
+ * https://github.com/cognitect-labs/anomalies
+ * https://github.com/metosin/malli
+ * https://cljdoc.org/d/nrepl/nrepl/1.1.0-alpha1/doc/usage/client
+ * https://cljdoc.org/d/manifold/manifold/0.3.0/api/manifold.deferred
