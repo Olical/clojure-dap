@@ -34,4 +34,4 @@
     (merge
       {::anom/category ::anom/incorrect
        ::anom/message (str "Failed to validate against schema " id)
-       :explanation explanation})))
+       ::explanation explanation})))

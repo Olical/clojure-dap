@@ -24,5 +24,5 @@
     (t/is (not (util/anomaly? (schema/validate ::blue "hi"))))
     (t/is (not (util/anomaly? (schema/validate ::red {:a "hi", :b 10}))))
     (t/is (util/anomaly? (schema/validate ::red {:a 26, :b 10})))
-    (t/is (= "{:cognitect.anomalies/category :cognitect.anomalies/incorrect, :cognitect.anomalies/message \"Failed to validate against schema :clojure-dap.schema-test/red\", :explanation {:schema [:map [:a :clojure-dap.schema-test/blue] [:b pos-int?]], :value {:a 26, :b 10}, :errors ({:path [:a 0], :in [:a], :schema string?, :value 26})}}"
+    (t/is (= "{:cognitect.anomalies/category :cognitect.anomalies/incorrect, :cognitect.anomalies/message \"Failed to validate against schema :clojure-dap.schema-test/red\", :clojure-dap.schema/explanation {:schema [:map [:a :clojure-dap.schema-test/blue] [:b pos-int?]], :value {:a 26, :b 10}, :errors ({:path [:a 0], :in [:a], :schema string?, :value 26})}}"
              (pr-str (schema/validate ::red {:a 26, :b 10}))))))
