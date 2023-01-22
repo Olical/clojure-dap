@@ -1,6 +1,7 @@
 (ns clojure-dap.schema
   (:require [malli.core :as m]
-            [malli.util :as mu]))
+            [malli.util :as mu]
+            [cognitect.anomalies :as anom]))
 
 (defonce registry! (atom (merge (m/default-schemas) (mu/schemas))))
 (defonce explainers! (atom {}))
@@ -26,7 +27,11 @@
       (swap! explainers! id explainer)
       explainer)))
 
-(defn explain
-  "Validates the value against the schema referred to by the qualified keyword. Returns nil when everything is okay, returns a map explaining the issue when there is a problem."
+(defn validate
+  "Validates the value against the schema referred to by the qualified keyword. Returns nil when everything is okay, returns an anomaly map explaining the issue when there is a problem."
   [id value]
-  ((upsert-explainer! id) value))
+  (when-let [explanation ((upsert-explainer! id) value)]
+    (merge
+      {::anom/category ::anom/incorrect
+       ::anom/message (str "Failed to validate against schema " id)
+       :explanation explanation})))
