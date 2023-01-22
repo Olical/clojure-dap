@@ -1,4 +1,5 @@
 (ns clojure-dap.schema
+  "Schema registration and validation."
   (:require [malli.core :as m]
             [malli.util :as mu]
             [cognitect.anomalies :as anom]))
@@ -17,7 +18,9 @@
 
   nil)
 
-(defn- upsert-explainer! [id]
+(defn- upsert-explainer!
+  "Either return the explainer if compiled already or compile the explainer and cache it. Can throw malli errors if the schema is bad."
+  [id]
   (assert (qualified-keyword? id) "Schema ID must be a qualified keyword")
   (assert (get @registry! id) (str "Unknown schema: " id))
 

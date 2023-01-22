@@ -1,4 +1,5 @@
 (ns clojure-dap.util
+  "Utility functions! Everyone's favourite namespace."
   (:require [cognitect.anomalies :as anom]))
 
 (defn anomaly?
