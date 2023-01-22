@@ -15,6 +15,10 @@ jobs:
 
     # steps to perform in job
     steps:
+      - name: Set outputs
+        id: vars
+        run: echo "git_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
       - name: Checkout code
         uses: actions/checkout@v3
 
@@ -37,7 +41,7 @@ jobs:
           context: .
           # Note: tags has to be all lower-case
           tags: |
-            ghcr.io/olical/clojure-dap:${{ steps.vars.outputs.sha }}
+            ghcr.io/olical/clojure-dap:${{ steps.vars.outputs.git_sha }}
           # always build and push, regardless of branch
           # images are tagged with the git sha
           push: true
