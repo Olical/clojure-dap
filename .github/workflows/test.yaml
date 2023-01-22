@@ -2,7 +2,13 @@
 # <3 practicalli
 
 name: Test
-on: [push pull_request]
+
+on:
+  # run it on push
+  push:
+  # run it during pull request
+  pull_request:
+
 jobs:
   clojure:
     runs-on: ubuntu-latest
