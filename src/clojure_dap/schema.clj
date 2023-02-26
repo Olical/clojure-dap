@@ -35,6 +35,6 @@
   [id value]
   (when-let [explanation ((upsert-explainer! id) value)]
     (merge
-      {::anom/category ::anom/incorrect
-       ::anom/message (str "Failed to validate against schema " id)
-       ::explanation explanation})))
+     {::anom/category ::anom/incorrect
+      ::anom/message (str "Failed to validate against schema " id)
+      ::explanation explanation})))

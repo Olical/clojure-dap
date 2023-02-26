@@ -1,4 +1,6 @@
 /.cpcache/
 /.nrepl-port
 /.clj-kondo/
+!/.clj-kondo/config.edn
 /.lsp/
+.rebel_readline_history

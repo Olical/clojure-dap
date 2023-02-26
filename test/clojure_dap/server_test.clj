@@ -8,8 +8,8 @@
   (let [opts {:client-io (stream/io)
               :nrepl-io (stream/io)}]
     (merge
-      opts
-      {:stop(server/start opts)})))
+     opts
+     {:stop (server/start opts)})))
 
 (t/deftest start-stop
   (t/testing "we can start and stop the system"
