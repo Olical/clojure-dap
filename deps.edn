@@ -5,6 +5,7 @@
   mount/mount {:mvn/version "0.1.17"}
   nrepl/nrepl {:mvn/version "1.0.0"}
   metosin/jsonista {:mvn/version "0.3.7"}
+  luposlip/json-schema {:mvn/version "0.4.1"}
   com.taoensso/timbre {:mvn/version "6.0.4"}
   com.cognitect/anomalies {:mvn/version "0.1.12"}
   metosin/malli {:mvn/version "0.10.1"}}
