@@ -1,4 +1,4 @@
-{:paths ["src" "test"]
+{:paths ["src" "test" "resources"]
  :deps
  {org.clojure/clojure {:mvn/version "1.11.1"}
   manifold/manifold {:mvn/version "0.3.0"}
@@ -20,4 +20,8 @@
   :outdated {:deps {com.github.liquidz/antq {:mvn/version "2.2.999"}}
              :main-opts ["-m" "antq.core"]}
   :format {:deps {cljfmt/cljfmt {:mvn/version "0.9.2"}}
-           :main-opts ["-m" "cljfmt.main" "fix"]}}}
+           :main-opts ["-m" "cljfmt.main" "fix"]}}
+
+ :mvn/repos
+ {;; https://github.com/luposlip/json-schema
+  "jitpack.io" {:url "https://jitpack.io"}}}
