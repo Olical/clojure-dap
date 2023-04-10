@@ -1,7 +1,10 @@
 (ns clojure-dap.schema
   "Schema registration and validation."
-  (:require [malli.core :as m]
+  (:require [clojure.java.io :as io]
+            [malli.core :as m]
             [malli.util :as mu]
+            [jsonista.core :as json]
+            [json-schema.core :as json-schema]
             [cognitect.anomalies :as anom]))
 
 (defonce registry! (atom (merge (m/default-schemas) (mu/schemas))))
@@ -38,3 +41,13 @@
      {::anom/category ::anom/incorrect
       ::anom/message (str "Failed to validate against schema " id)
       ::explanation explanation})))
+
+(comment
+  (json-schema/validate
+   (json-schema/prepare-schema
+    (json/read-value (io/resource "clojure-dap/dap-json-schema.json")))
+   (json/write-value-as-string
+    {"seq" 153,
+     "type" "request",
+     "command" "cancel",
+     "arguments" {"threadId" 3}})))
