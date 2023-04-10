@@ -9,12 +9,13 @@
               :nrepl-io (stream/io)}]
     (merge
      opts
-     {:stop (server/start opts)})))
+     (server/start opts))))
 
 (t/deftest start-stop
   (t/testing "we can start and stop the system"
-    (let [{:keys [stop]} (start-test-server)]
-      (t/is (stop)))))
+    (let [server (start-test-server)]
+      (t/is server)
+      (t/is (nil? (server/stop server))))))
 
 ;; -> initialise request
 ;; <- capabilities

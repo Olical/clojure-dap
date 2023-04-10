@@ -4,7 +4,7 @@
             [manifold.deferred :as d]))
 
 (defn start
-  "Creates a new server that contains a few processes. Returns a function that when called will stop the server."
+  "Creates a new server that contains a few processes. Returns a server that you can pass to the stop function to stop."
   [{:keys [client-io nrepl-io]}]
   (let [stop-promise! (promise)
         stop-fn (fn []
@@ -29,4 +29,10 @@
             ::stopped
             (recur)))))
 
-    stop-fn))
+    {:stop stop-fn}))
+
+(defn stop
+  "Stops the given server process."
+  [server]
+  ((:stop server))
+  nil)
