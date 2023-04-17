@@ -4,6 +4,7 @@
             [malli.core :as m]
             [malli.util :as mu]
             [jsonista.core :as json]
+            [clojure.set :as set]
             [json-schema.core :as json-schema]
             [cognitect.anomalies :as anom]))
 
@@ -43,11 +44,59 @@
       ::explanation explanation})))
 
 (comment
-  (json-schema/validate
-   (json-schema/prepare-schema
-    (json/read-value (io/resource "clojure-dap/dap-json-schema.json")))
-   (json/write-value-as-string
-    {"seq" 153,
-     "type" "request",
-     "command" "cancel",
-     "arguments" {"threadId" 3}})))
+  (let [dap-json-schema (json/read-value (io/resource "clojure-dap/dap-json-schema.json"))]
+    (json-schema/validate
+     (json-schema/prepare-schema
+      (merge
+       dap-json-schema
+       {"oneOf" (mapv
+                 (fn [definition-name]
+                   {"$ref" (str "#/definitions/" definition-name)})
+                 (set/difference
+                  (set (keys (get dap-json-schema "definitions")))
+                  #{"ProtocolMessage"
+                    "Request"
+                    "Response"
+                    "Event"
+                    "Breakpoint"
+                    "BreakpointLocation"
+                    "Capabilities"
+                    "Checksum"
+                    "ChecksumAlgorithm"
+                    "ColumnDescriptor"
+                    "CompletionItem"
+                    "CompletionItemType"
+                    "DataBreakpoint"
+                    "DataBreakpointAccessType"
+                    "DisassembledInstruction"
+                    "ExceptionBreakMode"
+                    "ExceptionBreakpointsFilter"
+                    "ExceptionDetails"
+                    "ExceptionFilterOptions"
+                    "ExceptionOptions"
+                    "ExceptionPathSegment"
+                    "FunctionBreakpoint"
+                    "GotoTarget"
+                    "InstructionBreakpoint"
+                    "InvalidatedAreas"
+                    "Message"
+                    "Module"
+                    "ModulesViewDescriptor"
+                    "Scope"
+                    "Source"
+                    "SourceBreakpoint"
+                    "StackFrame"
+                    "StackFrameFormat"
+                    "StepInTarget"
+                    "SteppingGranularity"
+                    "Thread"
+                    "ValueFormat"
+                    "Variable"
+                    "VariablePresentationHint"}))}))
+
+     {"seq" 153
+      "type" "request"
+      "command" "next"
+      "arguments" {"threadId" 3}}))
+
+  (ex-data *e))
