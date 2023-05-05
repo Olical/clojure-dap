@@ -5,12 +5,13 @@
 
 (t/deftest assertions
   (t/testing "we must provide the right types"
-    (t/is (thrown-with-msg? AssertionError #"Schema ID must be a qualified keyword"
+    (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #"Invalid function arguments"
                             (schema/define! :foo [:any]))))
 
-  (t/testing "unknown schemas throw errors"
-    (t/is (thrown-with-msg? AssertionError #"Unknown schema: :clojure-dap.schema-test/foo"
-                            (schema/validate ::foo {:a true})))))
+  (t/testing "unknown schemas return anomalies"
+    (t/is (= {:cognitect.anomalies/category :cognitect.anomalies/not-found,
+              :cognitect.anomalies/message "Unknown schema: :clojure-dap.schema-test/foo"}
+             (schema/validate ::foo {:a true})))))
 
 (t/deftest define-and-validate
   (t/testing "defining and validating a schema"
