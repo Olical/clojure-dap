@@ -30,7 +30,7 @@
   (reset! explainers! {})
 
   nil)
-(m/=> define! [:=> [:cat qualified-keyword? some?] nil?])
+(m/=> define! [:=> [:cat :qualified-keyword some?] nil?])
 
 ;; Rewrite the cognitect.anomalies specs as Malli schemas.
 (define! ::anom/anomaly
@@ -59,7 +59,7 @@
           explainer))
       {::anom/category ::anom/not-found
        ::anom/message (str "Unknown schema: " id)})))
-(m/=> upsert-explainer! [:=> [:cat qualified-keyword?] [:or fn? ::anom/anomaly]])
+(m/=> upsert-explainer! [:=> [:cat :qualified-keyword] [:or fn? ::anom/anomaly]])
 
 (defn validate
   "Validates the value against the schema referred to by the qualified keyword. Returns nil when everything is okay, returns an anomaly map explaining the issue when there is a problem."
