@@ -34,8 +34,8 @@
 (define! ::id :qualified-keyword)
 (define! ::anomaly [:fn nom/abominable?])
 
-(defn maybe
-  "Wraps the given schema in an or, so you may get the schema you specify or you'll get an anomaly."
+(defn result
+  "Wraps the given schema in [:or ... :clojure-dap.schema/anomaly], prompting callers to handle your potential failure cases. Sort of modeled on Rust's Result<T, E> type which can return Ok(T) or Err(E)."
   [schema]
   [:or schema ::anomaly])
 
@@ -52,7 +52,7 @@
       (nom/fail
        ::anom/not-found
        {::anom/message (str "Unknown schema: " id)}))))
-(m/=> upsert-explainer! [:=> [:cat ::id] (maybe fn?)])
+(m/=> upsert-explainer! [:=> [:cat ::id] (result fn?)])
 
 (defn validate
   "Validates the value against the schema referred to by the qualified keyword. Returns nil when everything is okay, returns an anomaly map explaining the issue when there is a problem."
@@ -63,7 +63,7 @@
        ::anom/incorrect
        {::anom/message (str "Failed to validate against schema " id)
         ::explanation explanation}))))
-(m/=> validate [:=> [:cat ::id any?] [:or nil? ::anomaly]])
+(m/=> validate [:=> [:cat ::id any?] (result nil?)])
 
 (comment
   (let [dap-json-schema (json/read-value (io/resource "clojure-dap/dap-json-schema.json"))]
