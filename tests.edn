@@ -19,6 +19,7 @@
  :kaocha.plugin.capture-output/capture-output? true,
  :kaocha.hooks/pre-run [clojure-dap.kaocha-hooks/pre-run]
  :kaocha/reporter [kaocha.report.progress/report]
+ :kaocha.watch/ignore ["giants_shoulders/repl.clj"]
 
  :kaocha.plugin.profiling/count 3
  :kaocha.plugin.profiling/profiling? true}

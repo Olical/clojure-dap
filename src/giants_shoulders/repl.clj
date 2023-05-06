@@ -12,6 +12,8 @@
             [rebel-readline.clojure.main :as rr-cm]
             [clojure.main :as clj-main]))
 
+(alter-meta! *ns* assoc :clojure.tools.namespace.repl/load false)
+
 (defn start!
   "Start a development REPL, intended to be invoked from ./scripts/repl"
   [{:keys [portal]}]
