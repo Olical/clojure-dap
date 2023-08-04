@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-
-curl https://microsoft.github.io/debug-adapter-protocol/debugAdapterProtocol.json > resources/clojure-dap/dap-json-schema.json

@@ -1,12 +1,8 @@
 (ns clojure-dap.schema
   "Schema registration and validation."
-  (:require [clojure.java.io :as io]
-            [malli.core :as m]
+  (:require [malli.core :as m]
             [malli.util :as mu]
             [malli.registry :as mr]
-            [jsonista.core :as json]
-            [clojure.set :as set]
-            [json-schema.core :as json-schema]
             [cognitect.anomalies :as anom]
             [de.otto.nom.core :as nom]))
 
@@ -64,61 +60,3 @@
        {::anom/message (str "Failed to validate against schema " id)
         ::explanation explanation}))))
 (m/=> validate [:=> [:cat ::id any?] (result nil?)])
-
-(comment
-  (let [dap-json-schema (json/read-value (io/resource "clojure-dap/dap-json-schema.json"))]
-    (json-schema/validate
-     (json-schema/prepare-schema
-      (merge
-       dap-json-schema
-       {"oneOf" (mapv
-                 (fn [definition-name]
-                   {"$ref" (str "#/definitions/" definition-name)})
-                 (set/difference
-                  (set (keys (get dap-json-schema "definitions")))
-                  #{"ProtocolMessage"
-                    "Request"
-                    "Response"
-                    "Event"
-                    "Breakpoint"
-                    "BreakpointLocation"
-                    "Capabilities"
-                    "Checksum"
-                    "ChecksumAlgorithm"
-                    "ColumnDescriptor"
-                    "CompletionItem"
-                    "CompletionItemType"
-                    "DataBreakpoint"
-                    "DataBreakpointAccessType"
-                    "DisassembledInstruction"
-                    "ExceptionBreakMode"
-                    "ExceptionBreakpointsFilter"
-                    "ExceptionDetails"
-                    "ExceptionFilterOptions"
-                    "ExceptionOptions"
-                    "ExceptionPathSegment"
-                    "FunctionBreakpoint"
-                    "GotoTarget"
-                    "InstructionBreakpoint"
-                    "InvalidatedAreas"
-                    "Message"
-                    "Module"
-                    "ModulesViewDescriptor"
-                    "Scope"
-                    "Source"
-                    "SourceBreakpoint"
-                    "StackFrame"
-                    "StackFrameFormat"
-                    "StepInTarget"
-                    "SteppingGranularity"
-                    "Thread"
-                    "ValueFormat"
-                    "Variable"
-                    "VariablePresentationHint"}))}))
-
-     {"seq" 153
-      "type" "request"
-      "command" "next"
-      "arguments" {"threadId" 3}}))
-
-  (ex-data *e))
