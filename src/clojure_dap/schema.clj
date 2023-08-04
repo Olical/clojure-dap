@@ -60,3 +60,73 @@
        {::anom/message (str "Failed to validate against schema " id)
         ::explanation explanation}))))
 (m/=> validate [:=> [:cat ::id any?] (result nil?)])
+
+;; Schemas based on https://microsoft.github.io/debug-adapter-protocol/specification
+
+;; interface ProtocolMessage {
+;;   /**
+;;    * Sequence number of the message (also known as message ID). The `seq` for
+;;    * the first message sent by a client or debug adapter is 1, and for each
+;;    * subsequent message is 1 greater than the previous message sent by that
+;;    * actor. `seq` can be used to order requests, responses, and events, and to
+;;    * associate requests with their corresponding responses. For protocol
+;;    * messages of type `request` the sequence number can be used to cancel the
+;;    * request.
+;;    */
+;;   seq: number;
+;;
+;;   /**
+;;    * Message type.
+;;    * Values: 'request', 'response', 'event', etc.
+;;    */
+;;   type: 'request' | 'response' | 'event' | string;
+;; }
+
+(define! ::protocol-message
+  [:map
+   [:seq number?]
+   [:type [:or [:enum "request" "response" "event"] string?]]])
+
+;; interface Request extends ProtocolMessage {
+;;   type: 'request';
+;;
+;;   /**
+;;    * The command to execute.
+;;    */
+;;   command: string;
+;;
+;;   /**
+;;    * Object containing arguments for the command.
+;;    */
+;;   arguments?: any;
+;; }
+
+(define! ::request
+  (mu/merge
+   ::protocol-message
+   [:map
+    [:type [:enum "request"]]
+    [:command string?]
+    [:arguments {:optional true} any?]]))
+
+;; interface Event extends ProtocolMessage {
+;;   type: 'event';
+;;
+;;   /**
+;;    * Type of event.
+;;    */
+;;   event: string;
+;;
+;;   /**
+;;    * Event-specific information.
+;;    */
+;;   body?: any;
+;; }
+
+(define! ::event
+  (mu/merge
+   ::protocol-message
+   [:map
+    [:type [:enum "event"]]
+    [:event string?]
+    [:body {:optional true} any?]]))

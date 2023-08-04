@@ -36,3 +36,29 @@
                                               :value {:a 26, :b 10}}
              :cognitect.anomalies/message "Failed to validate against schema :clojure-dap.schema-test/red"}]
            (schema/validate ::red {:a 26, :b 10})))))
+
+(t/deftest dap-schemas
+  (t/testing "protocol-message"
+    (t/is (nil?
+           (schema/validate
+            ::schema/protocol-message
+            {:seq 0
+             :type "request"}))))
+
+  (t/testing "request"
+    (t/is (nil?
+           (schema/validate
+            ::schema/request
+            {:seq 0
+             :type "request"
+             :command "foo"
+             :arguments {:a 10}}))))
+
+  (t/testing "event"
+    (t/is (nil?
+           (schema/validate
+            ::schema/event
+            {:seq 0
+             :type "event"
+             :event "foo"
+             :body {:a 10}})))))
