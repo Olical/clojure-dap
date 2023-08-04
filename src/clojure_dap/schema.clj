@@ -12,8 +12,8 @@
 
 (defonce schemas! (atom (merge (m/default-schemas) (mu/schemas))))
 
--;; We use a global Malli registry, for better or for worse.
--;; To me this is the good bits of spec with the great bits of Malli.
+;; We use a global Malli registry, for better or for worse.
+;; To me this is the good bits of spec with the great bits of Malli.
 (mr/set-default-registry! (mr/mutable-registry schemas!))
 
 ;; A cache of explainer functions used by the validate function.
