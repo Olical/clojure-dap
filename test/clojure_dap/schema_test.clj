@@ -61,4 +61,16 @@
             {:seq 0
              :type "event"
              :event "foo"
+             :body {:a 10}}))))
+
+  (t/testing "response"
+    (t/is (nil?
+           (schema/validate
+            ::schema/response
+            {:seq 0
+             :type "response"
+             :request_seq 10
+             :success true
+             :command "barrel_roll"
+             :message "wheeeee"
              :body {:a 10}})))))

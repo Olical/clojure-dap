@@ -130,3 +130,57 @@
     [:type [:enum "event"]]
     [:event string?]
     [:body {:optional true} any?]]))
+
+;; interface Response extends ProtocolMessage {
+;;   type: 'response';
+;;
+;;   /**
+;;    * Sequence number of the corresponding request.
+;;    */
+;;   request_seq: number;
+;;
+;;   /**
+;;    * Outcome of the request.
+;;    * If true, the request was successful and the `body` attribute may contain
+;;    * the result of the request.
+;;    * If the value is false, the attribute `message` contains the error in short
+;;    * form and the `body` may contain additional information (see
+;;    * `ErrorResponse.body.error`).
+;;    */
+;;   success: boolean;
+;;
+;;   /**
+;;    * The command requested.
+;;    */
+;;   command: string;
+;;
+;;   /**
+;;    * Contains the raw error in short form if `success` is false.
+;;    * This raw error might be interpreted by the client and is not shown in the
+;;    * UI.
+;;    * Some predefined values exist.
+;;    * Values: 
+;;    * 'cancelled': the request was cancelled.
+;;    * 'notStopped': the request may be retried once the adapter is in a 'stopped'
+;;    * state.
+;;    * etc.
+;;    */
+;;   message?: 'cancelled' | 'notStopped' | string;
+;;
+;;   /**
+;;    * Contains request result if success is true and error details if success is
+;;    * false.
+;;    */
+;;   body?: any;
+;; }
+
+(define! ::response
+  (mu/merge
+   ::protocol-message
+   [:map
+    [:type [:enum "response"]]
+    [:request_seq number?]
+    [:success boolean?]
+    [:command string?]
+    [:message {:optional true} [:or [:enum "cancelled" "notStopped"] string?]]
+    [:body {:optional true} any?]]))
