@@ -159,7 +159,7 @@
 ;;    * This raw error might be interpreted by the client and is not shown in the
 ;;    * UI.
 ;;    * Some predefined values exist.
-;;    * Values: 
+;;    * Values:
 ;;    * 'cancelled': the request was cancelled.
 ;;    * 'notStopped': the request may be retried once the adapter is in a 'stopped'
 ;;    * state.
@@ -184,3 +184,74 @@
     [:command string?]
     [:message {:optional true} [:or [:enum "cancelled" "notStopped"] string?]]
     [:body {:optional true} any?]]))
+
+;; interface Message {
+;;   /**
+;;    * Unique (within a debug adapter implementation) identifier for the message.
+;;    * The purpose of these error IDs is to help extension authors that have the
+;;    * requirement that every user visible error message needs a corresponding
+;;    * error number, so that users or customer support can find information about
+;;    * the specific error more easily.
+;;    */
+;;   id: number;
+;;
+;;   /**
+;;    * A format string for the message. Embedded variables have the form `{name}`.
+;;    * If variable name starts with an underscore character, the variable does not
+;;    * contain user data (PII) and can be safely used for telemetry purposes.
+;;    */
+;;   format: string;
+;;
+;;   /**
+;;    * An object used as a dictionary for looking up the variables in the format
+;;    * string.
+;;    */
+;;   variables?: { [key: string]: string; };
+;;
+;;   /**
+;;    * If true send to telemetry.
+;;    */
+;;   sendTelemetry?: boolean;
+;;
+;;   /**
+;;    * If true show user.
+;;    */
+;;   showUser?: boolean;
+;;
+;;   /**
+;;    * A url where additional information about this message can be found.
+;;    */
+;;   url?: string;
+;;
+;;   /**
+;;    * A label that is presented to the user as the UI for opening the url.
+;;    */
+;;   urlLabel?: string;
+;; }
+
+(define! ::message
+  [:map
+   [:id number?]
+   [:format string?]
+   [:variables {:optional true} [:map-of string? string?]]
+   [:sendTelemetry {:optional true} boolean?]
+   [:showUser {:optional true} boolean?]
+   [:url {:optional true} string?]
+   [:urlLabel {:optional true} string?]])
+
+;; interface ErrorResponse extends Response {
+;;   body: {
+;;     /**
+;;      * A structured error message.
+;;      */
+;;     error?: Message;
+;;   };
+;; }
+
+(define! ::error-response
+  (mu/merge
+   ::response
+   [:map
+    [:body
+     {:optional true}
+     [:map [:error {:optional true} ::message]]]]))

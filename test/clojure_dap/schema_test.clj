@@ -73,4 +73,28 @@
              :success true
              :command "barrel_roll"
              :message "wheeeee"
-             :body {:a 10}})))))
+             :body {:a 10}}))))
+
+  (t/testing "error-response"
+    (t/is (nil?
+           (schema/validate
+            ::schema/error-response
+            {:type "response"
+             :seq 10
+             :request_seq 5
+             :success false
+             :command "uhoh"})))
+
+    (t/is (nil?
+           (schema/validate
+            ::schema/error-response
+            {:type "response"
+             :seq 10
+             :request_seq 5
+             :success false
+             :command "do-things"
+             :message "cancelled"
+             :body {:error {:id 9005
+                            :format "hi {person}"
+                            :variables {"person" "world"}
+                            :sendTelemetry true}}})))))
