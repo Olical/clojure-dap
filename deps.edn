@@ -6,6 +6,7 @@
   mount/mount {:mvn/version "0.1.17"}
   nrepl/nrepl {:mvn/version "1.0.0"}
   metosin/jsonista {:mvn/version "0.3.7"}
+  luposlip/json-schema {:mvn/version "0.4.1"}
   com.taoensso/timbre {:mvn/version "6.2.2"}
   com.cognitect/anomalies {:mvn/version "0.1.12"}
   de.otto/nom {:mvn/version "0.3.0"}
@@ -21,4 +22,8 @@
   :outdated {:deps {com.github.liquidz/antq {:mvn/version "2.5.1102"}}
              :main-opts ["-m" "antq.core"]}
   :format {:deps {cljfmt/cljfmt {:mvn/version "0.9.2"}}
-           :main-opts ["-m" "cljfmt.main" "fix"]}}}
+           :main-opts ["-m" "cljfmt.main" "fix"]}}
+
+ :mvn/repos
+ {;; https://github.com/luposlip/json-schema
+  "jitpack.io" {:url "https://jitpack.io"}}}
