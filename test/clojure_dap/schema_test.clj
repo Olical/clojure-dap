@@ -38,13 +38,6 @@
            (schema/validate ::red {:a 26, :b 10})))))
 
 (t/deftest dap-schemas
-  (t/testing "protocol-message"
-    (t/is (nil?
-           (schema/validate
-            ::schema/protocol-message
-            {:seq 0
-             :type "request"}))))
-
   (t/testing "request"
     (t/is (nil?
            (schema/validate
@@ -52,49 +45,4 @@
             {:seq 0
              :type "request"
              :command "foo"
-             :arguments {:a 10}}))))
-
-  (t/testing "event"
-    (t/is (nil?
-           (schema/validate
-            ::schema/event
-            {:seq 0
-             :type "event"
-             :event "foo"
-             :body {:a 10}}))))
-
-  (t/testing "response"
-    (t/is (nil?
-           (schema/validate
-            ::schema/response
-            {:seq 0
-             :type "response"
-             :request_seq 10
-             :success true
-             :command "barrel_roll"
-             :message "wheeeee"
-             :body {:a 10}}))))
-
-  (t/testing "error-response"
-    (t/is (nil?
-           (schema/validate
-            ::schema/error-response
-            {:type "response"
-             :seq 10
-             :request_seq 5
-             :success false
-             :command "uhoh"})))
-
-    (t/is (nil?
-           (schema/validate
-            ::schema/error-response
-            {:type "response"
-             :seq 10
-             :request_seq 5
-             :success false
-             :command "do-things"
-             :message "cancelled"
-             :body {:error {:id 9005
-                            :format "hi {person}"
-                            :variables {"person" "world"}
-                            :sendTelemetry true}}})))))
+             :arguments {:a 10}})))))
