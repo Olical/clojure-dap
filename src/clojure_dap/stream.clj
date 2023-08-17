@@ -50,8 +50,6 @@
                            body (str/join @(s/take! (s/batch Content-Length input-stream)))]
               (try
                 (let [parsed (json/read-value body json/keyword-keys-object-mapper)]
-                  ;; TODO Validate against schemas in a smarter way?
-                  ;; TODO Should validate return the value if it's okay?
                   (nom/with-nom [(schema/validate ::schema/request parsed)]
                     parsed))
                 (catch Exception e
