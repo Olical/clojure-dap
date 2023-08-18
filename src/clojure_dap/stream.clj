@@ -11,18 +11,17 @@
 (def header-sep "\r\n")
 (def double-header-sep (str header-sep header-sep))
 
+(schema/define! ::io
+  [:map
+   [:input [:fn s/stream?]]
+   [:output [:fn s/stream?]]])
+
 (defn io
   "Create an input/output stream pair. Input is coming towards your code, output is heading out from your code."
   []
   {:input (s/stream)
    :output (s/stream)})
-(m/=>
- io
- [:=>
-  [:cat]
-  [:map
-   [:input [:fn s/stream?]]
-   [:output [:fn s/stream?]]]])
+(m/=> io [:=> [:cat] ::io])
 
 (defn parse-header
   "Given a header string of the format 'Content-Length: 119\\r\\n\\r\\n' it returns a map containing the key value pairs."
