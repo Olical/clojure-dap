@@ -19,16 +19,18 @@
   (match input
     {:type "request"
      :command "initialize"}
-    (respond {:type "response"
-              :command "initialize"
-              :success true
-              :body {:supportsCancelRequest false}})
+    (respond
+     {:type "response"
+      :command "initialize"
+      :success true
+      :body {:supportsCancelRequest false}})
 
     {:command command}
-    (respond {:type "response"
-              :command command
-              :success false
-              :message "Unknown or unsupported command."})))
+    (respond
+     {:type "response"
+      :command command
+      :success false
+      :message "Unknown or unsupported command."})))
 
 (defn start
   "Creates a new server that contains a few processes. Returns a server that you can pass to the stop function to stop. It speaks :clojure-dap.schema/message maps, something outside of this should translate those messages to and from the DAP wire format.
