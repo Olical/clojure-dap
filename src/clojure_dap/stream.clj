@@ -8,6 +8,9 @@
             [manifold.stream :as s]
             [clojure-dap.schema :as schema]))
 
+(def header-sep "\r\n")
+(def double-header-sep (str header-sep header-sep))
+
 (defn io
   "Create an input/output stream pair. Input is coming towards your code, output is heading out from your code."
   []
@@ -40,6 +43,18 @@
         ::error (Throwable->map e)}))))
 (m/=> parse-header [:=> [:cat string?] (schema/result [:map-of keyword? any?])])
 
+(defn render-header
+  "Turns a map of k->v into a header string."
+  [x]
+  (str
+   (str/join
+    (map
+     (fn [[k v]]
+       (str (name k) ": " v header-sep))
+     x))
+   header-sep))
+(m/=> render-header [:=> [:cat [:or nil? [:map-of keyword? any?]]] string?])
+
 (defn read-message
   "Reads a DAP message from the input stream. Assumes a few things: The first character we're going to read will be the beginning of a new messages header AND the stream will consist of single characters.
 
@@ -53,7 +68,8 @@
     (let [next-char @(s/take! input-stream)]
       (if (char? next-char)
         (let [header-buffer (str header-buffer next-char)]
-          (if (str/ends-with? header-buffer "\r\n\r\n")
+          (if (or (= header-buffer header-sep)
+                  (str/ends-with? header-buffer double-header-sep))
             (nom/let-nom> [{:keys [Content-Length] :as headers}
                            (parse-header header-buffer)
                            body (str/join @(s/take! (s/batch Content-Length input-stream)))]

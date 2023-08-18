@@ -110,3 +110,11 @@
               {:cognitect.anomalies/message "Received a non-character while reading the next DAP message. A nil probably means the stream closed."
                ::stream/value nil}]
              (stream/read-message input))))))
+
+(t/deftest render-header
+  (t/testing "nil / empty map produces an empty header"
+    (t/is (= stream/header-sep (stream/render-header nil)))
+    (t/is (= stream/header-sep (stream/render-header {}))))
+
+  (t/testing "we can render content length headers"
+    (t/is (= "Content-Length: 123\r\n\r\n" (stream/render-header {:Content-Length 123})))))
