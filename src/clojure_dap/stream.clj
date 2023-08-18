@@ -1,6 +1,7 @@
 (ns clojure-dap.stream
   "Tools to work with DAP streams and streams in general."
   (:require [clojure.string :as str]
+            [malli.core :as m]
             [de.otto.nom.core :as nom]
             [jsonista.core :as json]
             [cognitect.anomalies :as anom]
@@ -12,6 +13,13 @@
   []
   {:input (s/stream)
    :output (s/stream)})
+(m/=>
+ io
+ [:=>
+  [:cat]
+  [:map
+   [:input [:fn s/stream?]]
+   [:output [:fn s/stream?]]]])
 
 (defn parse-header
   "Given a header string of the format 'Content-Length: 119\\r\\n\\r\\n' it returns a map containing the key value pairs."
@@ -30,6 +38,7 @@
        {::anom/message "Failed to parse DAP header"
         ::header header
         ::error (Throwable->map e)}))))
+(m/=> parse-header [:=> [:cat string?] (schema/result [:map-of keyword? any?])])
 
 (defn read-message
   "Reads a DAP message from the input stream. Assumes a few things: The first character we're going to read will be the beginning of a new messages header AND the stream will consist of single characters.
@@ -64,3 +73,8 @@
          ::anom/incorrect
          {::anom/message "Received a non-character while reading the next DAP message. A nil probably means the stream closed."
           ::value next-char})))))
+(m/=>
+ read-message
+ [:=>
+  [:cat [:fn s/stream?]]
+  (schema/result [:map-of keyword? any?])])

@@ -42,8 +42,8 @@
            [:de.otto.nom.core/anomaly
             :cognitect.anomalies/incorrect
             {:cognitect.anomalies/message "Failed to parse DAP header"
-             ::stream/header 10}]
-           (stream/parse-header 10)))))
+             ::stream/header "Content-Length: ohno\r\n\r\n"}]
+           (stream/parse-header "Content-Length: ohno\r\n\r\n")))))
 
 (t/deftest read-message
   (t/testing "reads a DAP message from a input-stream"
