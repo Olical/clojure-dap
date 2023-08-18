@@ -20,15 +20,15 @@
 (defonce explainers! (atom {}))
 
 (defn define!
-  "Define a new schema, accepts a qualified keyword and a schema. Will be precompiled into a explainer. It may refer to other previously defined schemas by their qualified keyword."
+  "Define a new schema, accepts a qualified keyword and a schema. Will be precompiled into a explainer. It may refer to other previously defined schemas by their qualified keyword. Returns the keyword for the schema you're defining so you can embed it in other schemas."
   [id schema]
   (swap! schemas! assoc id schema)
 
   ;; Reset the cache each time so we don't get into weird dev states.
   (reset! explainers! {})
 
-  nil)
-(m/=> define! [:=> [:cat :qualified-keyword some?] nil?])
+  id)
+(m/=> define! [:=> [:cat :qualified-keyword some?] :qualified-keyword])
 
 (define! ::id :qualified-keyword)
 (define! ::anomaly [:fn nom/abominable?])
@@ -89,5 +89,12 @@
          true
          (catch clojure.lang.ExceptionInfo _e
            false)))]))
+(m/=> dap-json-schema->malli [:=> [:cat keyword?] vector?])
 
-(define! ::request (dap-json-schema->malli :Request))
+(define! ::message
+  [:or
+   (define! ::initialize-request (dap-json-schema->malli :InitializeRequest))
+   (define! ::initialize-response (dap-json-schema->malli :InitializeResponse))
+
+   (define! ::next-request (dap-json-schema->malli :NextRequest))
+   (define! ::next-response (dap-json-schema->malli :NextResponse))])

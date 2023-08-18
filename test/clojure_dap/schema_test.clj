@@ -38,11 +38,12 @@
            (schema/validate ::red {:a 26, :b 10})))))
 
 (t/deftest dap-schemas
-  (t/testing "request"
-    (t/is (nil?
+  (t/testing "message includes initialize request and response"
+    (t/is (match?
+           nil
            (schema/validate
-            ::schema/request
+            ::schema/message
             {:seq 0
              :type "request"
-             :command "foo"
-             :arguments {:a 10}})))))
+             :command "initialize"
+             :arguments {:adapterID "12345"}})))))

@@ -89,24 +89,15 @@
         [:de.otto.nom.core/anomaly
          :cognitect.anomalies/incorrect
          {:clojure-dap.schema/explanation
-          {:errors [{:in []
-                     :path []
-                     :schema m/schema?
-                     :value {:arguments {:threadId 3}
-                             :command "next"
-                             :seq 153
-                             :type "reqest"}}]
+          {:errors some?
            :schema m/schema?
            :value {:arguments {:threadId 3}
                    :command "next"
                    :seq 153
                    :type "reqest"}}
 
-          :clojure-dap.schema/humanized
-          ["JSON Validation error: #/type: reqest is not a valid enum value"]
-
           :cognitect.anomalies/message
-          "Failed to validate against schema :clojure-dap.schema/request"}]
+          "Failed to validate against schema :clojure-dap.schema/message"}]
         (stream/read-message input)))))
 
   (t/testing "returns an anomaly if the stream closes"
