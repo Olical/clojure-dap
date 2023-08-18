@@ -94,3 +94,15 @@
  [:=>
   [:cat [:fn s/stream?]]
   (schema/result [:map-of keyword? any?])])
+
+(defn render-message
+  "Takes a DAP message, validates it against the various possible schemas and then encodes it as a DAP JSON message with a header. This string can then be sent across the wire to the development tool."
+  [message]
+  (nom/with-nom [(schema/validate ::schema/message message)]
+    (let [encoded (json/write-value-as-string message)]
+      (str (render-header {:Content-Length (count encoded)}) encoded))))
+(m/=>
+ render-message
+ [:=>
+  [:cat [:map-of keyword? any?]]
+  (schema/result string?)])

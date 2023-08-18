@@ -118,3 +118,42 @@
 
   (t/testing "we can render content length headers"
     (t/is (= "Content-Length: 123\r\n\r\n" (stream/render-header {:Content-Length 123})))))
+
+(t/deftest render-message
+  (t/testing "a simple valid message"
+    (t/is (= "Content-Length: 72\r\n\r\n{\"seq\":153,\"type\":\"request\",\"command\":\"next\",\"arguments\":{\"threadId\":3}}"
+             (stream/render-message
+              {:seq 153
+               :type "request"
+               :command "next"
+               :arguments {:threadId 3}}))))
+
+  (t/testing "we can round trip through the render and read functions"
+    (let [message {:seq 153
+                   :type "request"
+                   :command "next"
+                   :arguments {:threadId 3}}
+          {:keys [input _output]} (stream/io)]
+      (s/put-all! input (char-array (stream/render-message message)))
+      (t/is (match? message (stream/read-message input)))))
+
+  (t/testing "a bad message returns an anomaly"
+    (t/is
+     (match?
+      [:de.otto.nom.core/anomaly
+       :cognitect.anomalies/incorrect
+       {:clojure-dap.schema/explanation
+        {:errors some?
+         :schema m/schema?
+         :value {:arguments {:threadId 3}
+                 :command "next"
+                 :seq 153
+                 :type "reqest"}}
+
+        :cognitect.anomalies/message
+        "Failed to validate against schema :clojure-dap.schema/message"}]
+      (stream/render-message
+       {:arguments {:threadId 3}
+        :command "next"
+        :seq 153
+        :type "reqest"})))))
