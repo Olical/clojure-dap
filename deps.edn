@@ -21,7 +21,7 @@
                       com.bhauman/rebel-readline {:mvn/version "0.1.4"}}}
   :outdated {:deps {com.github.liquidz/antq {:mvn/version "2.5.1109"}}
              :main-opts ["-m" "antq.core"]}
-  :format {:deps {cljfmt/cljfmt {:mvn/version "0.9.2"}}
+  :format {:deps {dev.weavejester/cljfmt {:mvn/version "0.11.2"}}
            :main-opts ["-m" "cljfmt.main" "fix"]}}
 
  :mvn/repos
