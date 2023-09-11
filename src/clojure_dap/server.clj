@@ -12,6 +12,12 @@
   (let [state (atom 0)]
     (fn []
       (swap! state inc))))
+(m/=>
+ auto-seq
+ [:=>
+  [:cat]
+  [:function
+   [:=> [:cat] number?]]])
 
 (defn handle-client-input
   "Takes a message from a DAP client and acts accordingly."
