@@ -42,7 +42,7 @@
   "Creates a new server that contains a few processes. Returns a server that you can pass to the stop function to stop. It speaks :clojure-dap.schema/message maps, something outside of this should translate those messages to and from the DAP wire format.
 
   Assumes the messages heading in and out of these streams are schema checked elsewhere when they're encoded and decoded.
-  
+
   This is essentially the bridge between a DAP client and an nREPL."
   [{:keys [client-io nrepl-io]}]
   (let [next-seq (auto-seq)
