@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-clojure -X clojure-dap.main/run $@
+clojure -X clojure-dap.main/run "$@"
