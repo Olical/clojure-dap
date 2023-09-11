@@ -6,6 +6,7 @@
             [jsonista.core :as json]
             [cognitect.anomalies :as anom]
             [manifold.stream :as s]
+            [manifold.deferred :as d]
             [clojure-dap.schema :as schema]))
 
 (def header-sep "\r\n")
@@ -16,11 +17,13 @@
    [:input [:fn s/stream?]]
    [:output [:fn s/stream?]]])
 
+(def ^:dynamic *io-buffer-size* 1024)
+
 (defn io
   "Create an input/output stream pair. Input is coming towards your code, output is heading out from your code."
   []
-  {:input (s/stream)
-   :output (s/stream)})
+  {:input (s/stream *io-buffer-size*)
+   :output (s/stream *io-buffer-size*)})
 (m/=> io [:=> [:cat] ::io])
 
 (defn parse-header
@@ -105,3 +108,30 @@
  [:=>
   [:cat [:map-of keyword? any?]]
   (schema/result string?)])
+
+(defn java-io->io
+  "Takes a java.io.Reader and java.io.Writer and attaches them to a manifold stream IO pair. The returned io pair works on a character by character basis for reading into input and string basis for outputting to the writer."
+  [{:keys [reader writer]}]
+
+  (let [{:keys [input output] :as io-pair} (io)]
+    (d/future
+      (loop []
+        (when-not (s/closed? input)
+          (s/put! input (char (.read reader)))
+          (recur))))
+
+    (d/future
+      (loop []
+        (when-not (s/closed? output)
+          (.write writer @(s/take! output))
+          (.flush writer)
+          (recur))))
+    io-pair))
+(m/=>
+ java-io->io
+ [:=>
+  [:cat
+   [:map
+    [:writer [:fn #(instance? java.io.Writer %)]]
+    [:reader [:fn #(instance? java.io.Reader %)]]]]
+  ::io])

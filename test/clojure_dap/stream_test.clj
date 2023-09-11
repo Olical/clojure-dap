@@ -1,5 +1,6 @@
 (ns clojure-dap.stream-test
   (:require [clojure.test :as t]
+            [clojure.java.io :as io]
             [malli.core :as m]
             [matcher-combinators.test]
             [manifold.stream :as s]
@@ -157,3 +158,27 @@
         :command "next"
         :seq 153
         :type "reqest"})))))
+
+(t/deftest java-io->io
+  (t/testing "attaches the reader to the input (character by character) and output to the writer (whole strings)"
+    (with-open [reader (io/reader (char-array "Hello, World!"))
+                writer (java.io.StringWriter.)]
+      (let [{:keys [input output]}
+            (stream/java-io->io
+             {:reader reader
+              :writer writer})]
+        (t/is (= (seq "Hello, World!") (s/stream->seq input 100)))
+
+        @(s/put! output "How do you do?")
+
+        ;; Block for a few milliseconds until the stream has flushed.
+        (run!
+         (fn [ms]
+           (when (empty? (str writer))
+             (Thread/sleep ms)))
+         [1 2 4 8 16])
+
+        (t/is (= "How do you do?" (str writer))))))
+
+  ;; (t/testing "closes streams / handles ends of input...")
+  )
