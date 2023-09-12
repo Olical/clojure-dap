@@ -5,6 +5,7 @@
             [de.otto.nom.core :as nom]
             [jsonista.core :as json]
             [cognitect.anomalies :as anom]
+            [taoensso.timbre :as log]
             [manifold.stream :as s]
             [manifold.deferred :as d]
             [clojure-dap.schema :as schema]))
@@ -25,6 +26,13 @@
   {:input (s/stream *io-buffer-size*)
    :output (s/stream *io-buffer-size*)})
 (m/=> io [:=> [:cat] ::io])
+
+(defn close-io!
+  "Closes the input and output of an IO pair."
+  [{:keys [input output]}]
+  (s/close! input)
+  (s/close! output))
+(m/=> close-io! [:=> [:cat ::io] nil?])
 
 (defn parse-header
   "Given a header string of the format 'Content-Length: 119\\r\\n\\r\\n' it returns a map containing the key value pairs."
@@ -117,15 +125,25 @@
     (d/future
       (loop []
         (when-not (s/closed? input)
-          (s/put! input (char (.read reader)))
-          (recur))))
+          (let [char-int (.read reader)]
+            (if (= -1 char-int)
+              (s/close! input)
+              (do
+                (s/put! input (char char-int))
+                (recur)))))))
 
     (d/future
       (loop []
         (when-not (s/closed? output)
-          (.write writer @(s/take! output))
-          (.flush writer)
-          (recur))))
+          (when-let [to-write @(s/take! output)]
+            (try
+              (.write writer to-write)
+              (.flush writer)
+              (catch java.io.IOException ex
+                (log/error ex "Error while writing to writer in java-io->io, closing output stream since it's probably closed")
+                (s/close! output)))
+            (recur)))))
+
     io-pair))
 (m/=>
  java-io->io

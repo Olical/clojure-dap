@@ -12,6 +12,15 @@
       (t/is (s/stream? input))
       (t/is (s/stream? output)))))
 
+(t/deftest close-io!
+  (t/testing "it cloes both sides of the pair"
+    (let [{:keys [input output] :as io-pair} (stream/io)]
+      (t/is (not (s/closed? input)))
+      (t/is (not (s/closed? output)))
+      (stream/close-io! io-pair)
+      (t/is (s/closed? input))
+      (t/is (s/closed? output)))))
+
 (def example-message
   "Content-Length: 112\r\n\r\n{
     \"seq\": 153,
@@ -159,26 +168,67 @@
         :seq 153
         :type "reqest"})))))
 
+(defn block-until
+  [message pred]
+  (or
+   (some
+    (fn [ms]
+      (or
+       (pred)
+       (Thread/sleep ms)))
+    [1 2 4 8 16 32 64])
+
+   (throw (ex-info "Timeout from block-until" {::message message}))))
+
 (t/deftest java-io->io
-  (t/testing "attaches the reader to the input (character by character) and output to the writer (whole strings)"
+  (t/testing "returns an IO pair with the reader attached to the input stream (character by character) and output stream attached to the writer (whole strings)"
     (with-open [reader (io/reader (char-array "Hello, World!"))
                 writer (java.io.StringWriter.)]
       (let [{:keys [input output]}
             (stream/java-io->io
              {:reader reader
               :writer writer})]
+
         (t/is (= (seq "Hello, World!") (s/stream->seq input 100)))
 
         @(s/put! output "How do you do?")
 
-        ;; Block for a few milliseconds until the stream has flushed.
-        (run!
-         (fn [ms]
-           (when (empty? (str writer))
-             (Thread/sleep ms)))
-         [1 2 4 8 16])
+        (block-until
+         "StringWriter contains something"
+         #(seq (str writer)))
 
         (t/is (= "How do you do?" (str writer))))))
 
-  ;; (t/testing "closes streams / handles ends of input...")
-  )
+  (t/testing "if the reader closes, the input closes"
+    (with-open [reader (io/reader (char-array "Hello, World!"))
+                writer (java.io.StringWriter.)]
+      (let [{:keys [input output]}
+            (stream/java-io->io
+             {:reader reader
+              :writer writer})]
+
+        (doall (s/stream->seq input 100))
+        (.close reader)
+
+        (block-until
+         "Input closed"
+         #(s/closed? input))
+
+        (t/is (s/closed? input))
+        (t/is (not (s/closed? output))))))
+
+  (t/testing "if the writer closes, the output closes"
+    (with-open [reader (io/reader (char-array "Hello, World!"))
+                writer (io/writer *err*)]
+      (let [{:keys [input output]}
+            (stream/java-io->io
+             {:reader reader
+              :writer writer})]
+        (.close writer)
+        @(s/put! output "How do you do?")
+
+        (block-until
+         "Both streams closed"
+         #(and (s/closed? input) (s/closed? output)))
+
+        (t/is (s/closed? output))))))
