@@ -125,8 +125,12 @@
     (d/future
       (loop []
         (when-not (s/closed? input)
-          (let [char-int (.read reader)]
-            (if (= -1 char-int)
+          (let [char-int
+                (try
+                  (.read reader)
+                  (catch Exception e
+                    (log/error e "Error while reading in java-io->io")))]
+            (if (or (nil? char-int) (= -1 char-int))
               (s/close! input)
               (do
                 (s/put! input (char char-int))

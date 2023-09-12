@@ -176,7 +176,7 @@
       (or
        (pred)
        (Thread/sleep ms)))
-    [1 2 4 8 16 32 64])
+    [1 2 4 8 16 32])
 
    (throw (ex-info "Timeout from block-until" {::message message}))))
 
@@ -200,14 +200,13 @@
         (t/is (= "How do you do?" (str writer))))))
 
   (t/testing "if the reader closes, the input closes"
-    (with-open [reader (io/reader (char-array "Hello, World!"))
+    (with-open [reader (java.io.StringReader. "Hello, World!")
                 writer (java.io.StringWriter.)]
       (let [{:keys [input output]}
             (stream/java-io->io
              {:reader reader
               :writer writer})]
 
-        (doall (s/stream->seq input 100))
         (.close reader)
 
         (block-until
