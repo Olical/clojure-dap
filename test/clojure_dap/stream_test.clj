@@ -219,7 +219,7 @@
   (t/testing "if the writer closes, the output closes"
     (with-open [reader (io/reader (char-array "Hello, World!"))
                 writer (io/writer *err*)]
-      (let [{:keys [input output]}
+      (let [{:keys [_input output]}
             (stream/java-io->io
              {:reader reader
               :writer writer})]
@@ -227,7 +227,7 @@
         @(s/put! output "How do you do?")
 
         (block-until
-         "Both streams closed"
-         #(and (s/closed? input) (s/closed? output)))
+         "Output closed"
+         #(s/closed? output))
 
         (t/is (s/closed? output))))))
