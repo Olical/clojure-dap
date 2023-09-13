@@ -176,7 +176,7 @@
       (or
        (pred)
        (Thread/sleep ms)))
-    [1 2 4 8 16 32])
+    [1 2 4 8 16 32 64 128])
 
    (throw (ex-info "Timeout from block-until" {::message message}))))
 
