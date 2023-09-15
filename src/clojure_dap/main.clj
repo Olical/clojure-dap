@@ -27,7 +27,7 @@
          (stream/java-io->io
           {:reader *in*
            :writer *out*}))]
-    (s/map #(log/info "Anomaly from client <-> server streams" %) anomalies)
+    (s/map #(log/error "Anomaly from client <-> server streams" %) anomalies)
     (server/start
      {:client-io client-io
       :nrepl-io (stream/io)}))
