@@ -3,8 +3,8 @@
   (:require [clojure.string :as str]
             [malli.core :as m]
             [de.otto.nom.core :as nom]
-            [jsonista.core :as json]
             [cognitect.anomalies :as anom]
+            [jsonista.core :as json]
             [taoensso.timbre :as log]
             [manifold.stream :as s]
             [manifold.deferred :as d]
@@ -18,13 +18,13 @@
    [:input [:fn s/stream?]]
    [:output [:fn s/stream?]]])
 
-(def ^:dynamic *io-buffer-size* 1024)
+(def ^:dynamic *stream-buffer-size* 1024)
 
 (defn io
   "Create an input/output stream pair. Input is coming towards your code, output is heading out from your code."
   []
-  {:input (s/stream *io-buffer-size*)
-   :output (s/stream *io-buffer-size*)})
+  {:input (s/stream *stream-buffer-size*)
+   :output (s/stream *stream-buffer-size*)})
 (m/=> io [:=> [:cat] ::io])
 
 (defn close-io!
