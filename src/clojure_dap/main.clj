@@ -3,6 +3,7 @@
   (:require [taoensso.timbre :as log]
             [taoensso.timbre.appenders.core :as appenders]
             [malli.core :as m]
+            [manifold.stream :as s]
             [clojure-dap.client :as client]
             [clojure-dap.server :as server]
             [clojure-dap.stream :as stream]))
@@ -21,13 +22,15 @@
 
   (log/info "Starting clojure-dap with configuration:" opts)
 
-  (server/start
-   {:client-io (:client-io
-                (client/create
-                 (stream/java-io->io
-                  {:reader *in*
-                   :writer *out*})))
-    :nrepl-io (stream/io)})
+  (let [{:keys [client-io anomalies]}
+        (client/create
+         (stream/java-io->io
+          {:reader *in*
+           :writer *out*}))]
+    (s/map #(log/info "Anomaly from client <-> server streams" %) anomalies)
+    (server/start
+     {:client-io client-io
+      :nrepl-io (stream/io)}))
 
   (log/info "Server started in single session mode (multi session mode will come later)")
 
