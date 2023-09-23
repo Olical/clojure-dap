@@ -30,9 +30,9 @@
               (log/trace "(from client)" message)
               (if (nom/anomaly? message)
                 (do
-                  (s/put! anomalies message)
+                  @(s/put! anomalies message)
                   (close-all!))
-                (s/put! (:input inner-io-pair) message))
+                @(s/put! (:input inner-io-pair) message))
               (recur))))
         (catch Exception e
           (log/error e "Unexpected error in future reading from client")
@@ -47,8 +47,8 @@
             (let [message (stream/render-message @(s/take! (:output inner-io-pair)))]
               (log/trace "(to client)" message)
               (if (nom/anomaly? message)
-                (s/put! anomalies message)
-                (s/put! (:output outer-io-pair) message))
+                @(s/put! anomalies message)
+                @(s/put! (:output outer-io-pair) message))
               (recur))))
         (catch Exception e
           (log/error e "Unexpected error in future writing to client")
