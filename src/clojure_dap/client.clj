@@ -32,8 +32,9 @@
                 (do
                   @(s/put! anomalies message)
                   (close-all!))
-                @(s/put! (:input inner-io-pair) message))
-              (recur))))
+                (do
+                  @(s/put! (:input inner-io-pair) message)
+                  (recur))))))
         (catch Exception e
           (log/error e "Unexpected error in future reading from client")
           (close-all!))))

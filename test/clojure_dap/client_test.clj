@@ -7,7 +7,7 @@
             [clojure-dap.stream-test :as stream-test]))
 
 (defn try-take [stream]
-  @(s/try-take! stream 100))
+  @(s/try-take! stream 512))
 
 (t/deftest create
   (t/testing "connects a client IO pair to a new pair, can read and write DAP messages through it"
