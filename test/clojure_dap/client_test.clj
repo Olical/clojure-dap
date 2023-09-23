@@ -4,10 +4,11 @@
             [manifold.stream :as s]
             [clojure-dap.stream :as stream]
             [clojure-dap.client :as client]
-            [clojure-dap.stream-test :as stream-test]))
+            [clojure-dap.stream-test :as stream-test]
+            [clojure-dap.test-util :as tutil]))
 
 (defn try-take [stream]
-  @(s/try-take! stream 512))
+  @(s/try-take! stream 100))
 
 (t/deftest create
   (t/testing "connects a client IO pair to a new pair, can read and write DAP messages through it"
@@ -89,6 +90,10 @@
            "3 JSON Validation errors: #: required key [request_seq] not found, #: required key [success] not found, #/type: reqest is not a valid enum value"]}]
         (try-take anomalies)))
 
+      (tutil/block-until
+       "Streams closed"
+       #(s/closed? anomalies))
+
       (t/is (s/closed? (:input outer-io)))
       (t/is (s/closed? (:output outer-io)))
       (t/is (s/closed? (:input client-io)))
@@ -109,6 +114,10 @@
            [{:type 'com.fasterxml.jackson.core.JsonParseException
              :message "Unrecognized token 'ohno': was expecting (JSON String, Number, Array, Object or token 'null', 'true' or 'false')\n at [Source: (String)\"ohno\"; line: 1, column: 5]"}]}}]
         (try-take anomalies)))
+
+      (tutil/block-until
+       "Streams closed"
+       #(s/closed? anomalies))
 
       (t/is (s/closed? (:input outer-io)))
       (t/is (s/closed? (:output outer-io)))

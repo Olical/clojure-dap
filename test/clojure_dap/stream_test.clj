@@ -4,7 +4,8 @@
             [malli.core :as m]
             [matcher-combinators.test]
             [manifold.stream :as s]
-            [clojure-dap.stream :as stream]))
+            [clojure-dap.stream :as stream]
+            [clojure-dap.test-util :as tutil]))
 
 (t/deftest io
   (t/testing "it's a pair of streams, do what you want with them!"
@@ -168,18 +169,6 @@
         :seq 153
         :type "reqest"})))))
 
-(defn block-until
-  [message pred]
-  (or
-   (some
-    (fn [ms]
-      (or
-       (pred)
-       (Thread/sleep ms)))
-    (reductions * (repeat 10 2)))
-
-   (throw (ex-info "Timeout from block-until" {::message message}))))
-
 (t/deftest java-io->io
   (t/testing "returns an IO pair with the reader attached to the input stream (character by character) and output stream attached to the writer (whole strings)"
     (with-open [reader (io/reader (char-array "Hello, World!"))
@@ -193,7 +182,7 @@
 
         @(s/put! output "How do you do?")
 
-        (block-until
+        (tutil/block-until
          "StringWriter contains something"
          #(seq (str writer)))
 
@@ -209,7 +198,7 @@
 
         (.close reader)
 
-        (block-until
+        (tutil/block-until
          "Input closed"
          #(s/closed? input))
 
@@ -226,7 +215,7 @@
         (.close writer)
         @(s/put! output "How do you do?")
 
-        (block-until
+        (tutil/block-until
          "Output closed"
          #(s/closed? output))
 
