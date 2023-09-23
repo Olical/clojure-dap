@@ -54,6 +54,63 @@
            "3 JSON Validation errors: #: required key [request_seq] not found, #: required key [success] not found, #/type: quest is not a valid enum value"
            "JSON Validation error: #/type: quest is not a valid enum value"
            "3 JSON Validation errors: #: required key [request_seq] not found, #: required key [success] not found, #/type: quest is not a valid enum value"]}]
-        @(s/take! anomalies)))))
+        @(s/try-take! anomalies 100)))
 
-  (t/testing "closes the streams if one end disconnects"))
+      (t/is (not (s/closed? (:input outer-io))))
+      (t/is (not (s/closed? (:output outer-io))))
+      (t/is (not (s/closed? (:input client-io))))
+      (t/is (not (s/closed? (:output client-io))))
+      (t/is (not (s/closed? anomalies))))
+
+    (let [outer-io (stream/io)
+          {:keys [client-io anomalies]} (client/create outer-io)]
+      @(s/put-all! (:input outer-io) (seq stream-test/invalid-message))
+      (t/is
+       (match?
+        [:de.otto.nom.core/anomaly
+         :cognitect.anomalies/incorrect
+         {:cognitect.anomalies/message
+          "Failed to validate against schema :clojure-dap.schema/message",
+          :clojure-dap.schema/explanation
+          {:schema some?
+           :value
+           {:arguments {:threadId 3},
+            :command "next"
+            :type "reqest"
+            :seq 153}
+           :errors seq?}
+          :clojure-dap.schema/humanized
+          ["3 JSON Validation errors: #/type: reqest is not a valid enum value, #/arguments: required key [adapterID] not found, #/command: next is not a valid enum value"
+           "3 JSON Validation errors: #: required key [request_seq] not found, #: required key [success] not found, #/type: reqest is not a valid enum value"
+           "JSON Validation error: #/type: reqest is not a valid enum value"
+           "3 JSON Validation errors: #: required key [request_seq] not found, #: required key [success] not found, #/type: reqest is not a valid enum value"]}]
+        @(s/try-take! anomalies 100)))
+
+      (t/is (s/closed? (:input outer-io)))
+      (t/is (s/closed? (:output outer-io)))
+      (t/is (s/closed? (:input client-io)))
+      (t/is (s/closed? (:output client-io)))
+      (t/is (s/closed? anomalies)))
+
+    (let [outer-io (stream/io)
+          {:keys [client-io anomalies]} (client/create outer-io)]
+      @(s/put-all! (:input outer-io) (seq "Content-Length: ohno\r\n\r\n"))
+      (t/is
+       (match?
+        [:de.otto.nom.core/anomaly
+         :cognitect.anomalies/incorrect
+         {:cognitect.anomalies/message "Failed to parse DAP header"
+          :clojure-dap.stream/header "Content-Length: ohno\r\n\r\n"
+          :clojure-dap.stream/error
+          {:via
+           [{:type 'com.fasterxml.jackson.core.JsonParseException
+             :message "Unrecognized token 'ohno': was expecting (JSON String, Number, Array, Object or token 'null', 'true' or 'false')\n at [Source: (String)\"ohno\"; line: 1, column: 5]"}]}}]
+        @(s/try-take! anomalies 100)))
+
+      (t/is (s/closed? (:input outer-io)))
+      (t/is (s/closed? (:output outer-io)))
+      (t/is (s/closed? (:input client-io)))
+      (t/is (s/closed? (:output client-io)))
+      (t/is (s/closed? anomalies)))
+
+    (t/testing "closes the streams if one end disconnects")))

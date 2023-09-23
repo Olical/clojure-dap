@@ -114,7 +114,7 @@
 (m/=>
  render-message
  [:=>
-  [:cat [:map-of keyword? any?]]
+  [:cat [:or [:map-of keyword? any?] nil?]]
   (schema/result string?)])
 
 (defn java-io->io
