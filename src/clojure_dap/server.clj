@@ -26,16 +26,12 @@
     {:type "request"
      :command "initialize"}
     (respond
-     {:type "response"
-      :command "initialize"
-      :success true
+     {:success true
       :body {:supportsCancelRequest false}})
 
-    {:command command}
+    {}
     (respond
-     {:type "response"
-      :command command
-      :success false
+     {:success false
       :message "Unknown or unsupported command."})))
 
 (defn start
@@ -63,8 +59,10 @@
                 :respond (fn [message]
                            (s/put! (:output client-io)
                                    (merge
-                                    {:seq (next-seq)
-                                     :request_seq (:seq input)}
+                                    {:type "response"
+                                     :seq (next-seq)
+                                     :request_seq (:seq input)
+                                     :command (:command input)}
                                     message)))})
               (recur))))))
 
