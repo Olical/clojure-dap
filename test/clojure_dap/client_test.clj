@@ -7,9 +7,6 @@
             [clojure-dap.stream-test :as stream-test]
             [clojure-dap.test-util :as tutil]))
 
-(defn try-take [stream]
-  @(s/try-take! stream 100))
-
 (t/deftest create
   (t/testing "connects a client IO pair to a new pair, can read and write DAP messages through it"
     (let [outer-io (stream/io)
@@ -22,14 +19,14 @@
                 :arguments {:threadId 3}})
       (t/is
        (= "Content-Length: 72\r\n\r\n{\"seq\":153,\"type\":\"request\",\"command\":\"next\",\"arguments\":{\"threadId\":3}}"
-          (try-take (:output outer-io))))
+          (tutil/try-take (:output outer-io))))
 
       @(s/put-all! (:input outer-io) (seq stream-test/example-message))
       (t/is (= {:arguments {:threadId 3}
                 :command "next"
                 :seq 153
                 :type "request"}
-               (try-take (:input client-io))))))
+               (tutil/try-take (:input client-io))))))
 
   (t/testing "handles invalid messages in either direction"
     (let [outer-io (stream/io)
@@ -58,7 +55,7 @@
            "3 JSON Validation errors: #: required key [request_seq] not found, #: required key [success] not found, #/type: quest is not a valid enum value"
            "JSON Validation error: #/type: quest is not a valid enum value"
            "3 JSON Validation errors: #: required key [request_seq] not found, #: required key [success] not found, #/type: quest is not a valid enum value"]}]
-        (try-take anomalies)))
+        (tutil/try-take anomalies)))
 
       (t/is (not (s/closed? (:input outer-io))))
       (t/is (not (s/closed? (:output outer-io))))
@@ -88,7 +85,7 @@
            "3 JSON Validation errors: #: required key [request_seq] not found, #: required key [success] not found, #/type: reqest is not a valid enum value"
            "JSON Validation error: #/type: reqest is not a valid enum value"
            "3 JSON Validation errors: #: required key [request_seq] not found, #: required key [success] not found, #/type: reqest is not a valid enum value"]}]
-        (try-take anomalies)))
+        (tutil/try-take anomalies)))
 
       (tutil/block-until
        "Streams closed"
@@ -113,7 +110,7 @@
           {:via
            [{:type 'com.fasterxml.jackson.core.JsonParseException
              :message "Unrecognized token 'ohno': was expecting (JSON String, Number, Array, Object or token 'null', 'true' or 'false')\n at [Source: (String)\"ohno\"; line: 1, column: 5]"}]}}]
-        (try-take anomalies)))
+        (tutil/try-take anomalies)))
 
       (tutil/block-until
        "Streams closed"

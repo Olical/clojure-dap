@@ -2,7 +2,8 @@
   (:require [clojure.test :as t]
             [manifold.stream :as s]
             [clojure-dap.server :as server]
-            [clojure-dap.stream :as stream]))
+            [clojure-dap.stream :as stream]
+            [clojure-dap.test-util :as tutil]))
 
 (defn start-test-server []
   (let [opts {:client-io (stream/io)
@@ -48,7 +49,7 @@
                 :command "initialize"
                 :success true
                 :body {:supportsCancelRequest false}}
-               @(s/take! (:output client-io))))
+               (tutil/try-take (:output client-io))))
 
         (t/testing "unknown / unhandled messages get an error response"
           (s/put!
@@ -63,7 +64,7 @@
                   :command "unknownthing"
                   :success false
                   :message "Unknown or unsupported command."}
-                 @(s/take! (:output client-io)))))))))
+                 (tutil/try-take (:output client-io)))))))))
 
 ;; -> initialise request
 ;; <- capabilities
