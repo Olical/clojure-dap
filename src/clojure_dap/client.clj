@@ -20,6 +20,8 @@
                      (stream/close-io! inner-io-pair)
                      (stream/close-io! outer-io-pair)
                      (s/close! anomalies))]
+
+    ;; Read and parse messages from the DAP client.
     (d/future
       (try
         (loop []
@@ -39,6 +41,7 @@
           (log/error e "Unexpected error in future reading from client")
           (close-all!))))
 
+    ;; Encode and send messages to the DAP client.
     (d/future
       (try
         (loop []
