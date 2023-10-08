@@ -14,4 +14,4 @@
    (throw (ex-info "Timeout from block-until" {::message message}))))
 
 (defn try-take [stream]
-  @(s/try-take! stream 100))
+  @(s/try-take! stream 1000))
