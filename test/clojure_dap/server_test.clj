@@ -41,7 +41,7 @@
          {:seq 1
           :type "request"
           :command "initialize"
-          :arguments {:adapterId "12345"}})
+          :arguments {:adapterID "12345"}})
         (t/is (match?
                {:seq 1
                 :request_seq 1
@@ -56,14 +56,15 @@
            (:input client-io)
            {:seq 2
             :type "request"
-            :command "unknownthing"})
+            :command "unknownthing"
+            :arguments {}})
           (t/is (match?
                  {:seq 2
                   :request_seq 2
                   :type "response"
                   :command "unknownthing"
                   :success false
-                  :message "Unknown or unsupported command."}
+                  :message #"Error while handling input"}
                  (tutil/try-take (:output client-io)))))))))
 
 ;; -> initialise request
