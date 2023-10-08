@@ -33,7 +33,6 @@
           (if (any-closed?)
             (close-all!)
             (let [message (stream/read-message (:input outer-io-pair))]
-              (log/trace "(from client)" message)
               (if (nom/anomaly? message)
                 (do
                   @(s/put! anomalies message)

@@ -65,7 +65,7 @@
     (util/with-thread ::client-read-loop
       (loop []
         (let [input @(d/alt stop-promise! (s/take! (:input client-io)))]
-          (if (= input ::stop)
+          (if (or (nil? input) (= input ::stop))
             ::stopped
             (let [respond (fn [message]
                             (s/put! (:output client-io)
@@ -89,7 +89,7 @@
     (util/with-thread ::nrepl-read-loop
       (loop []
         (let [input @(d/alt stop-promise! (s/take! (:input nrepl-io)))]
-          (if (= input ::stop)
+          (if (or (nil? input) (= input ::stop))
             ::stopped
             (recur)))))
 

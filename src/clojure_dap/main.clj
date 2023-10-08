@@ -32,11 +32,21 @@
         (client/create
          (stream/java-io->io
           {:reader *in*
-           :writer *out*}))]
+           :writer *out*}))
+        server (server/start
+                {:client-io client-io
+                 :nrepl-io (stream/io)})]
     (s/map #(log/error "Anomaly from client <-> server streams" %) anomalies)
-    (server/start
-     {:client-io client-io
-      :nrepl-io (stream/io)}))
+
+    (.addShutdownHook
+     (Runtime/getRuntime)
+     (Thread. ^Runnable
+      (fn []
+        (log/info "Shutdown hook triggered, shutting down...")
+        (server/stop server)
+        (stream/close-io! client-io)
+        (shutdown-agents)
+        (log/info "All done, goodbye!")))))
 
   (log/info "Server started in single session mode (multi session mode will come later)")
 
