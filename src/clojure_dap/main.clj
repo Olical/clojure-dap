@@ -1,6 +1,7 @@
 (ns clojure-dap.main
   "Entrypoint for the actual program, handles starting of systems and CLI input."
-  (:require [taoensso.timbre :as log]
+  (:require [clojure.java.io :as io]
+            [taoensso.timbre :as log]
             [taoensso.timbre.appenders.core :as appenders]
             [malli.core :as m]
             [malli.instrument :as mi]
@@ -31,8 +32,8 @@
   (let [{:keys [client-io anomalies]}
         (client/create
          (stream/java-io->io
-          {:reader *in*
-           :writer *out*}))
+          {:reader (io/reader System/in)
+           :writer (io/writer System/out)}))
         server (server/start
                 {:client-io client-io
                  :nrepl-io (stream/io)})]

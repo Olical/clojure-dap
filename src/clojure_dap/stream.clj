@@ -10,7 +10,7 @@
             [clojure-dap.util :as util]
             [clojure-dap.schema :as schema]))
 
-(def header-sep (System/getProperty "line.separator"))
+(def header-sep "\r\n")
 (def double-header-sep (str header-sep header-sep))
 
 (schema/define! ::io
