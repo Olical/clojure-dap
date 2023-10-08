@@ -60,13 +60,13 @@
                   (deliver stop-promise! ::stop)
                   (stream/close-io! client-io)
                   (stream/close-io! nrepl-io)
-                  true)]
+                  ::stopped)]
 
     (util/with-thread ::client-read-loop
       (loop []
         (let [input @(d/alt stop-promise! (s/take! (:input client-io)))]
           (if (or (nil? input) (= input ::stop))
-            ::stopped
+            (stop-fn)
             (let [respond (fn [message]
                             (s/put! (:output client-io)
                                     (merge
@@ -90,10 +90,11 @@
       (loop []
         (let [input @(d/alt stop-promise! (s/take! (:input nrepl-io)))]
           (if (or (nil? input) (= input ::stop))
-            ::stopped
+            (stop-fn)
             (recur)))))
 
-    {:stop stop-fn}))
+    {:stop stop-fn
+     :stop-promise! stop-promise!}))
 (m/=>
  start
  [:=>

@@ -47,11 +47,11 @@
         (server/stop server)
         (stream/close-io! client-io)
         (shutdown-agents)
-        (log/info "All done, goodbye!")))))
+        (log/info "All done, goodbye!"))))
 
-  (log/info "Server started in single session mode (multi session mode will come later)")
+    (log/info "Server started in single session mode (multi session mode will come later)")
 
-  @(promise))
+    @(:stop-promise! server)))
 (m/=>
  run
  [:=>
