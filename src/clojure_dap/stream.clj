@@ -8,6 +8,7 @@
             [taoensso.timbre :as log]
             [manifold.stream :as s]
             [manifold.deferred :as d]
+            [clojure-dap.util :as util]
             [clojure-dap.schema :as schema]))
 
 (def header-sep "\r\n")
@@ -122,7 +123,7 @@
   [{:keys [reader writer]}]
 
   (let [{:keys [input output] :as io-pair} (io)]
-    (d/future
+    (util/with-thread ::java-io-input-reader
       (loop []
         (when-not (s/closed? input)
           (let [char-int
@@ -136,7 +137,7 @@
                 (s/put! input (char char-int))
                 (recur)))))))
 
-    (d/future
+    (util/with-thread ::java-io-output-writer
       (loop []
         (when-not (s/closed? output)
           (when-let [to-write @(s/take! output)]
