@@ -2,10 +2,10 @@
   "Tools to connect a client up to a clojure-dap.io/stream-pair."
   (:require [malli.core :as m]
             [manifold.stream :as s]
-            [manifold.deferred :as d]
             [de.otto.nom.core :as nom]
             [taoensso.timbre :as log]
-            [clojure-dap.stream :as stream]))
+            [clojure-dap.stream :as stream]
+            [clojure-dap.util :as util]))
 
 (defn create
   "Takes a client stream pair and returns another stream pair containing parsed DAP messages. When feeding it DAP messages to send it'll do the encoding for you and send them to the client.
@@ -17,16 +17,20 @@
   (let [inner-io-pair (stream/io)
         anomalies (s/stream stream/*stream-buffer-size*)
         close-all! (fn []
+                     (log/info "Closing all client streams (DAP client and server), you may see this multiple times")
                      (stream/close-io! inner-io-pair)
                      (stream/close-io! outer-io-pair)
-                     (s/close! anomalies))]
+                     (s/close! anomalies))
+        any-closed? (fn []
+                      (or (s/closed? (:input inner-io-pair))
+                          (s/closed? (:input outer-io-pair))
+                          (s/closed? (:output inner-io-pair))
+                          (s/closed? (:output outer-io-pair))))]
 
-    ;; Read and parse messages from the DAP client.
-    (d/future
+    (util/with-thread ::dap-client-reader
       (try
         (loop []
-          (if (or (s/closed? (:input inner-io-pair))
-                  (s/closed? (:input outer-io-pair)))
+          (if (any-closed?)
             (close-all!)
             (let [message (stream/read-message (:input outer-io-pair))]
               (log/trace "(from client)" message)
@@ -41,12 +45,10 @@
           (log/error e "Unexpected error in future reading from client")
           (close-all!))))
 
-    ;; Encode and send messages to the DAP client.
-    (d/future
+    (util/with-thread ::dap-client-writer
       (try
         (loop []
-          (if (or (s/closed? (:output inner-io-pair))
-                  (s/closed? (:output outer-io-pair)))
+          (if (any-closed?)
             (close-all!)
             (let [message (stream/render-message @(s/take! (:output inner-io-pair)))]
               (log/trace "(to client)" message)
