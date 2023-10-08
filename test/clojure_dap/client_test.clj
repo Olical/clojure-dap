@@ -133,6 +133,7 @@
             {:keys [client-io anomalies]} (client/create outer-io)]
 
         (s/close! (:input client-io))
+        (s/close! (:output client-io))
 
         (tutil/block-until
          "Streams closed"
