@@ -47,7 +47,7 @@
                   (deliver stop-promise! ::stop)
                   true)]
 
-    ;; Client read loop
+    ;; Client read loop.
     (d/future
       (loop []
         (let [input @(d/alt stop-promise! (s/take! (:input client-io)))]
@@ -66,7 +66,7 @@
                                     message)))})
               (recur))))))
 
-    ;; nREPL read loop
+    ;; nREPL read loop.
     (d/future
       (loop []
         (let [input @(d/alt stop-promise! (s/take! (:input nrepl-io)))]
