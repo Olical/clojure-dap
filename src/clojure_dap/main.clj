@@ -20,6 +20,7 @@
    {:appenders {:println (appenders/println-appender {:stream :*err*})}
     :middleware [#(assoc % :hostname_ "-")]})
 
+  (log/set-min-level! :trace)
   (log/info "Starting clojure-dap with configuration:" opts)
 
   (let [{:keys [client-io anomalies]}
