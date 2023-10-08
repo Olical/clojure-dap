@@ -58,6 +58,8 @@
         stop-promise! (promise)
         stop-fn (fn []
                   (deliver stop-promise! ::stop)
+                  (stream/close-io! client-io)
+                  (stream/close-io! nrepl-io)
                   true)]
 
     (util/with-thread ::client-read-loop

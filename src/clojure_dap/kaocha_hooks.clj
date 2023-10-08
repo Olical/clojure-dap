@@ -7,6 +7,7 @@
 (defn pre-run
   "Run after the config is loaded and the tests are planned. Just before the tests are actually executed."
   [test-plan]
+  (mi/unstrument!)
   (mi/instrument! {:report (malli-pretty/thrower)})
   (log/set-min-level! :trace)
   test-plan)

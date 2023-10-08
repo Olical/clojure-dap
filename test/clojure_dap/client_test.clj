@@ -26,7 +26,10 @@
                 :command "next"
                 :seq 153
                 :type "request"}
-               (tutil/try-take (:input client-io))))))
+               (tutil/try-take (:input client-io))))
+
+      (stream/close-io! outer-io)
+      (stream/close-io! client-io)))
 
   (t/testing "handles invalid messages in either direction"
     (let [outer-io (stream/io)
@@ -61,7 +64,10 @@
       (t/is (not (s/closed? (:output outer-io))))
       (t/is (not (s/closed? (:input client-io))))
       (t/is (not (s/closed? (:output client-io))))
-      (t/is (not (s/closed? anomalies))))
+      (t/is (not (s/closed? anomalies)))
+
+      (stream/close-io! outer-io)
+      (stream/close-io! client-io))
 
     (let [outer-io (stream/io)
           {:keys [client-io anomalies]} (client/create outer-io)]
@@ -122,4 +128,18 @@
       (t/is (s/closed? (:output client-io)))
       (t/is (s/closed? anomalies)))
 
-    (t/testing "closes the streams if one end disconnects")))
+    (t/testing "closes the streams if one end disconnects"
+      (let [outer-io (stream/io)
+            {:keys [client-io anomalies]} (client/create outer-io)]
+
+        (s/close! (:input client-io))
+
+        (tutil/block-until
+         "Streams closed"
+         #(s/closed? anomalies))
+
+        (t/is (s/closed? (:input outer-io)))
+        (t/is (s/closed? (:output outer-io)))
+        (t/is (s/closed? (:input client-io)))
+        (t/is (s/closed? (:output client-io)))
+        (t/is (s/closed? anomalies))))))
