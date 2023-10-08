@@ -7,7 +7,6 @@
             [jsonista.core :as json]
             [taoensso.timbre :as log]
             [manifold.stream :as s]
-            [manifold.deferred :as d]
             [clojure-dap.util :as util]
             [clojure-dap.schema :as schema]))
 
