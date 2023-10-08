@@ -24,38 +24,38 @@
       (t/is (s/closed? output)))))
 
 (def example-message
-  "Content-Length: 112\r\n\r\n{
+  (str "Content-Length: 112" stream/double-header-sep "{
     \"seq\": 153,
     \"type\": \"request\",
     \"command\": \"next\",
     \"arguments\": {
         \"threadId\": 3
     }
-}")
+}"))
 
 (def invalid-message
-  "Content-Length: 111\r\n\r\n{
+  (str "Content-Length: 111" stream/double-header-sep "{
     \"seq\": 153,
     \"type\": \"reqest\",
     \"command\": \"next\",
     \"arguments\": {
         \"threadId\": 3
     }
-}")
+}"))
 
 (t/deftest parse-header
   (t/testing "simple header"
     (t/is (= {:Content-Length 119}
              (stream/parse-header
-              "Content-Length: 119\r\n\r\n"))))
+              (str "Content-Length: 119" stream/double-header-sep)))))
 
   (t/testing "a bad header returns an anomaly"
     (t/is (match?
            [:de.otto.nom.core/anomaly
             :cognitect.anomalies/incorrect
             {:cognitect.anomalies/message "Failed to parse DAP header"
-             ::stream/header "Content-Length: ohno\r\n\r\n"}]
-           (stream/parse-header "Content-Length: ohno\r\n\r\n")))))
+             ::stream/header (str "Content-Length: ohno" stream/double-header-sep)}]
+           (stream/parse-header (str "Content-Length: ohno" stream/double-header-sep))))))
 
 (t/deftest read-message
   (t/testing "reads a DAP message from a input-stream"
@@ -72,7 +72,7 @@
 
   (t/testing "returns an anomaly if we get some bad input"
     (let [{:keys [input _output] :as io-pair} (stream/io)]
-      @(s/put-all! input (char-array "Content-Length: ohno\r\n\r\n"))
+      @(s/put-all! input (char-array (str "Content-Length: ohno" stream/double-header-sep)))
 
       (t/is (match?
              [:de.otto.nom.core/anomaly
@@ -86,7 +86,9 @@
       @(s/put-all!
         input
         (char-array
-         "Content-Length: 3\r\n\r\n{\"thisisbad\": true}"))
+         (str "Content-Length: 3"
+              stream/double-header-sep
+              "{\"thisisbad\": true}")))
 
       (t/is (match?
              [:de.otto.nom.core/anomaly
@@ -138,11 +140,14 @@
     (t/is (= stream/header-sep (stream/render-header {}))))
 
   (t/testing "we can render content length headers"
-    (t/is (= "Content-Length: 123\r\n\r\n" (stream/render-header {:Content-Length 123})))))
+    (t/is (= (str "Content-Length: 123" stream/double-header-sep) (stream/render-header {:Content-Length 123})))))
 
 (t/deftest render-message
   (t/testing "a simple valid message"
-    (t/is (= "Content-Length: 72\r\n\r\n{\"seq\":153,\"type\":\"request\",\"command\":\"next\",\"arguments\":{\"threadId\":3}}"
+    (t/is (= (str
+              "Content-Length: 72"
+              stream/double-header-sep
+              "{\"seq\":153,\"type\":\"request\",\"command\":\"next\",\"arguments\":{\"threadId\":3}}")
              (stream/render-message
               {:seq 153
                :type "request"

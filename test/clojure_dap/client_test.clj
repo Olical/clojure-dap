@@ -18,7 +18,9 @@
                 :command "next"
                 :arguments {:threadId 3}})
       (t/is
-       (= "Content-Length: 72\r\n\r\n{\"seq\":153,\"type\":\"request\",\"command\":\"next\",\"arguments\":{\"threadId\":3}}"
+       (= (str "Content-Length: 72"
+               stream/double-header-sep
+               "{\"seq\":153,\"type\":\"request\",\"command\":\"next\",\"arguments\":{\"threadId\":3}}")
           (tutil/try-take (:output outer-io))))
 
       @(s/put-all! (:input outer-io) (seq stream-test/example-message))
@@ -105,13 +107,13 @@
 
     (let [outer-io (stream/io)
           {:keys [client-io anomalies]} (client/create outer-io)]
-      @(s/put-all! (:input outer-io) (seq "Content-Length: ohno\r\n\r\n"))
+      @(s/put-all! (:input outer-io) (seq (str "Content-Length: ohno" stream/double-header-sep)))
       (t/is
        (match?
         [:de.otto.nom.core/anomaly
          :cognitect.anomalies/incorrect
          {:cognitect.anomalies/message "Failed to parse DAP header"
-          :clojure-dap.stream/header "Content-Length: ohno\r\n\r\n"
+          :clojure-dap.stream/header (str "Content-Length: ohno" stream/double-header-sep)
           :clojure-dap.stream/error
           {:via
            [{:type 'com.fasterxml.jackson.core.JsonParseException

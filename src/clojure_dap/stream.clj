@@ -10,7 +10,7 @@
             [clojure-dap.util :as util]
             [clojure-dap.schema :as schema]))
 
-(def header-sep "\r\n")
+(def header-sep (System/getProperty "line.separator"))
 (def double-header-sep (str header-sep header-sep))
 
 (schema/define! ::io
@@ -35,7 +35,7 @@
 (m/=> close-io! [:=> [:cat ::io] nil?])
 
 (defn parse-header
-  "Given a header string of the format 'Content-Length: 119\\r\\n\\r\\n' it returns a map containing the key value pairs."
+  "Given a header string of the format 'Content-Length: 119\\n\\n' it returns a map containing the key value pairs."
   [header]
   (try
     (into
@@ -68,7 +68,7 @@
 (defn read-message
   "Reads a DAP message from the input stream. Assumes a few things: The first character we're going to read will be the beginning of a new messages header AND the stream will consist of single characters.
 
-  It works by reading the header (Content-Length: 119\\r\\n\\r\\n) until a double \\r\\n\\r\\n at which point it knows the Content-Length and can read the rest of the message.
+  It works by reading the header (Content-Length: 119\\n\\n) until a double \\n\\n at which point it knows the Content-Length and can read the rest of the message.
 
   Once read, we decode the JSON body and validate it against the JSON schemas before returning the valid message or an anomaly.
 
