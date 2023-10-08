@@ -3,6 +3,8 @@
   (:require [taoensso.timbre :as log]
             [taoensso.timbre.appenders.core :as appenders]
             [malli.core :as m]
+            [malli.instrument :as mi]
+            [malli.dev.pretty :as malli-pretty]
             [manifold.stream :as s]
             [clojure-dap.client :as client]
             [clojure-dap.server :as server]
@@ -22,6 +24,9 @@
 
   (log/set-min-level! :trace)
   (log/info "Starting clojure-dap with configuration:" opts)
+
+  (log/info "Initialising Malli instrumentation")
+  (mi/instrument! {:report (malli-pretty/thrower)})
 
   (let [{:keys [client-io anomalies]}
         (client/create
