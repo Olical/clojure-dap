@@ -131,7 +131,9 @@
                   (catch Exception e
                     (log/error e "Error while reading in java-io->io")))]
             (if (or (nil? char-int) (= -1 char-int))
-              (s/close! input)
+              (do
+                (s/close! input)
+                (.close reader))
               (do
                 (s/put! input (char char-int))
                 (recur)))))))
@@ -145,7 +147,8 @@
               (.flush writer)
               (catch java.io.IOException ex
                 (log/error ex "Error while writing to writer in java-io->io, closing output stream since it's probably closed")
-                (s/close! output)))
+                (s/close! output)
+                (.close writer)))
             (recur)))))
 
     io-pair))
