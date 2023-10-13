@@ -97,5 +97,8 @@
    (define! ::initialize-response (dap-json-schema->malli :InitializeResponse))
    (define! ::initialized-event (dap-json-schema->malli :InitializedEvent))
 
+   (define! ::launch-request (dap-json-schema->malli :LaunchRequest))
+   (define! ::launch-response (dap-json-schema->malli :LaunchResponse))
+
    (define! ::next-request (dap-json-schema->malli :NextRequest))
    (define! ::next-response (dap-json-schema->malli :NextResponse))])

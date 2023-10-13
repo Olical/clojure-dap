@@ -25,8 +25,6 @@
 (defn handle-client-input
   "Takes a message from a DAP client and responds accordingly."
   [{:keys [input respond emit]}]
-  (log/trace "Handling input from client" input)
-
   (match input
     {:type "request"
      :command "initialize"}
@@ -41,7 +39,12 @@
       (emit
        {:event "initialized"}))
 
-;; We should rarely (if ever) get here because the Malli instrumentation.
+    {:type "request"
+     :command "launch"}
+    (respond
+     {:success true})
+
+    ;; We should rarely (if ever) get here because the Malli instrumentation.
     :else
     (respond
      {:success false
@@ -73,6 +76,8 @@
     (util/with-thread ::client-read-loop
       (loop []
         (let [input @(d/alt stop-promise! (s/take! (:input client-io)))]
+          (log/trace "Handling input in client read loop" input)
+
           (if (or (nil? input) (= input ::stop))
             (stop-fn)
             (letfn [(respond [message]
