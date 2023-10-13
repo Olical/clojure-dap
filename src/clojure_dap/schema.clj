@@ -95,6 +95,7 @@
   [:or
    (define! ::initialize-request (dap-json-schema->malli :InitializeRequest))
    (define! ::initialize-response (dap-json-schema->malli :InitializeResponse))
+   (define! ::initialized-event (dap-json-schema->malli :InitializedEvent))
 
    (define! ::next-request (dap-json-schema->malli :NextRequest))
    (define! ::next-response (dap-json-schema->malli :NextResponse))])
