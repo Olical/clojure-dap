@@ -37,7 +37,7 @@
         server (server/start
                 {:client-io client-io
                  :nrepl-io (stream/io)})]
-    (s/map #(log/error "Anomaly from client <-> server streams" %) anomalies)
+    (s/map #(log/error "Unhandled anomaly!" %) anomalies)
 
     (.addShutdownHook
      (Runtime/getRuntime)
