@@ -110,7 +110,7 @@
   [message]
   (nom/with-nom [(schema/validate ::schema/message message)]
     (let [encoded (json/write-value-as-string message)]
-      (str (render-header {:Content-Length (count encoded)}) encoded))))
+      (str (render-header {:Content-Length (count (.getBytes encoded))}) encoded))))
 (m/=>
  render-message
  [:=>
