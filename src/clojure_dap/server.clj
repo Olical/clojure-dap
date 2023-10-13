@@ -24,17 +24,24 @@
 
 (defn handle-client-input
   "Takes a message from a DAP client and responds accordingly."
-  [{:keys [input respond]}]
+  [{:keys [input respond emit]}]
   (log/trace "Handling input from client" input)
 
   (match input
     {:type "request"
      :command "initialize"}
-    (respond
-     {:success true
-      :body {:supportsCancelRequest false}})
+    (do
+      (respond
+       {:success true
+        :body {:supportsCancelRequest false
 
-    ;; We should rarely (if ever) get here because the Malli instrumentation.
+               ;; TODO Enable this one when we support it.
+               ;; It's called when the initialization is complete.
+               :supportsConfigurationDoneRequest false}})
+      (emit
+       {:event "initialized"}))
+
+;; We should rarely (if ever) get here because the Malli instrumentation.
     :else
     (respond
      {:success false
@@ -44,7 +51,8 @@
  [:=>
   [:cat [:map
          [:input ::schema/message]
-         [:respond [:function [:=> [:cat map?] any?]]]]]
+         [:respond [:function [:=> [:cat map?] any?]]]
+         [:emit [:function [:=> [:cat map?] any?]]]]]
   any?])
 
 (defn start
@@ -67,18 +75,28 @@
         (let [input @(d/alt stop-promise! (s/take! (:input client-io)))]
           (if (or (nil? input) (= input ::stop))
             (stop-fn)
-            (let [respond (fn [message]
-                            (s/put! (:output client-io)
-                                    (merge
-                                     {:type "response"
-                                      :seq (next-seq)
-                                      :request_seq (:seq input)
-                                      :command (:command input)}
-                                     message)))]
+            (letfn [(respond [message]
+                      (s/put!
+                       (:output client-io)
+                       (merge
+                        {:type "response"
+                         :seq (next-seq)
+                         :request_seq (:seq input)
+                         :command (:command input)}
+                        message)))
+
+                    (emit [message]
+                      (s/put!
+                       (:output client-io)
+                       (merge
+                        {:type "event"
+                         :seq (next-seq)}
+                        message)))]
               (try
                 (handle-client-input
                  {:input input
-                  :respond respond})
+                  :respond respond
+                  :emit emit})
                 (catch Exception e
                   (log/error e "Error from handle-client-input")
                   (respond

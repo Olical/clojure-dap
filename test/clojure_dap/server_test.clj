@@ -50,17 +50,22 @@
                 :success true
                 :body {:supportsCancelRequest false}}
                (tutil/try-take (:output client-io))))
+        (t/is (match?
+               {:seq 2
+                :type "event"
+                :event "initialized"}
+               (tutil/try-take (:output client-io))))
 
         (t/testing "unknown / unhandled messages get an error response"
           (s/put!
            (:input client-io)
-           {:seq 2
+           {:seq 3
             :type "request"
             :command "unknownthing"
             :arguments {}})
           (t/is (match?
-                 {:seq 2
-                  :request_seq 2
+                 {:seq 3
+                  :request_seq 3
                   :type "response"
                   :command "unknownthing"
                   :success false

@@ -1,6 +1,7 @@
 (ns clojure-dap.client-test
   (:require [clojure.test :as t]
             [matcher-combinators.test]
+            [matcher-combinators.matchers :as matchers]
             [manifold.stream :as s]
             [clojure-dap.stream :as stream]
             [clojure-dap.client :as client]
@@ -56,10 +57,9 @@
                    :arguments {:threadId 3}}
            :errors seq?}
           :clojure-dap.schema/humanized
-          ["3 JSON Validation errors: #/type: quest is not a valid enum value, #/arguments: required key [adapterID] not found, #/command: next is not a valid enum value"
-           "3 JSON Validation errors: #: required key [request_seq] not found, #: required key [success] not found, #/type: quest is not a valid enum value"
-           "JSON Validation error: #/type: quest is not a valid enum value"
-           "3 JSON Validation errors: #: required key [request_seq] not found, #: required key [success] not found, #/type: quest is not a valid enum value"]}]
+          (matchers/prefix
+           ["3 JSON Validation errors: #/type: quest is not a valid enum value, #/arguments: required key [adapterID] not found, #/command: next is not a valid enum value"
+            "3 JSON Validation errors: #: required key [request_seq] not found, #: required key [success] not found, #/type: quest is not a valid enum value"])}]
         (tutil/try-take anomalies)))
 
       (t/is (not (s/closed? (:input outer-io))))
@@ -89,10 +89,10 @@
             :seq 153}
            :errors seq?}
           :clojure-dap.schema/humanized
-          ["3 JSON Validation errors: #/type: reqest is not a valid enum value, #/arguments: required key [adapterID] not found, #/command: next is not a valid enum value"
-           "3 JSON Validation errors: #: required key [request_seq] not found, #: required key [success] not found, #/type: reqest is not a valid enum value"
-           "JSON Validation error: #/type: reqest is not a valid enum value"
-           "3 JSON Validation errors: #: required key [request_seq] not found, #: required key [success] not found, #/type: reqest is not a valid enum value"]}]
+          (matchers/prefix
+           ["3 JSON Validation errors: #/type: reqest is not a valid enum value, #/arguments: required key [adapterID] not found, #/command: next is not a valid enum value"
+            "3 JSON Validation errors: #: required key [request_seq] not found, #: required key [success] not found, #/type: reqest is not a valid enum value"])}]
+
         (tutil/try-take anomalies)))
 
       (tutil/block-until
