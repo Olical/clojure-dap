@@ -80,8 +80,7 @@
         (let [header-buffer (str header-buffer next-char)]
           (if (or (= header-buffer header-sep)
                   (str/ends-with? header-buffer double-header-sep))
-            (nom/let-nom> [{:keys [Content-Length] :as headers}
-                           (parse-header header-buffer)
+            (nom/let-nom> [{:keys [Content-Length] :as headers} (parse-header header-buffer)
                            body (str/join @(s/take! (s/batch Content-Length input-stream)))]
               (try
                 (let [parsed (json/read-value body json/keyword-keys-object-mapper)]
@@ -135,7 +134,7 @@
                 (s/close! input)
                 (.close reader))
               (do
-                (s/put! input (char char-int))
+                @(s/put! input (char char-int))
                 (recur)))))))
 
     (util/with-thread ::java-io-output-writer
