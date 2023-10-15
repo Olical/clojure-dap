@@ -4,24 +4,7 @@
             [malli.core :as m]
             [matcher-combinators.test]
             [manifold.stream :as s]
-            [clojure-dap.stream :as stream]
-            [clojure-dap.test-util :as tutil]))
-
-(t/deftest io
-  (t/testing "it's a pair of streams, do what you want with them!"
-    (let [{:keys [input output] :as io-pair} (stream/io)]
-      (t/is (s/stream? input))
-      (t/is (s/stream? output))
-      (stream/close-io! io-pair))))
-
-(t/deftest close-io!
-  (t/testing "it cloes both sides of the pair"
-    (let [{:keys [input output] :as io-pair} (stream/io)]
-      (t/is (not (s/closed? input)))
-      (t/is (not (s/closed? output)))
-      (stream/close-io! io-pair)
-      (t/is (s/closed? input))
-      (t/is (s/closed? output)))))
+            [clojure-dap.stream :as stream]))
 
 (def example-message
   (str "Content-Length: 112" stream/double-header-sep "{
@@ -59,36 +42,32 @@
 
 (t/deftest read-message
   (t/testing "reads a DAP message from a input-stream"
-    (let [{:keys [input _output] :as io-pair} (stream/io)]
-      @(s/put-all! input (char-array example-message))
+    (with-open [stream (s/stream)]
+      (s/put-all! stream (char-array example-message))
 
       (t/is (= {:seq 153
                 :type "request"
                 :command "next"
                 :arguments {:threadId 3}}
-               (stream/read-message input)))
-
-      (stream/close-io! io-pair)))
+               (stream/read-message stream)))))
 
   (t/testing "returns an anomaly if we get some bad input"
-    (let [{:keys [input _output] :as io-pair} (stream/io)]
-      @(s/put-all! input (char-array (str "Content-Length: ohno" stream/double-header-sep)))
+    (with-open [stream (s/stream)]
+      (s/put-all! stream (char-array (str "Content-Length: ohno" stream/double-header-sep)))
 
       (t/is (match?
              [:de.otto.nom.core/anomaly
               :cognitect.anomalies/incorrect
               {:cognitect.anomalies/message "Failed to parse DAP header"}]
-             (stream/read-message input)))
+             (stream/read-message stream))))
 
-      (stream/close-io! io-pair))
-
-    (let [{:keys [input _output] :as io-pair} (stream/io)]
-      @(s/put-all!
-        input
-        (char-array
-         (str "Content-Length: 3"
-              stream/double-header-sep
-              "{\"thisisbad\": true}")))
+    (with-open [stream (s/stream)]
+      (s/put-all!
+       stream
+       (char-array
+        (str "Content-Length: 3"
+             stream/double-header-sep
+             "{\"thisisbad\": true}")))
 
       (t/is (match?
              [:de.otto.nom.core/anomaly
@@ -96,12 +75,11 @@
               {:cognitect.anomalies/message "Failed to parse DAP message JSON"
                ::stream/headers {:Content-Length 3}
                ::stream/body "{\"t"}]
-             (stream/read-message input)))
-      (stream/close-io! io-pair)))
+             (stream/read-message stream)))))
 
   (t/testing "returns an anomaly if we can read a message but it's malformed"
-    (let [{:keys [input _output] :as io-pair} (stream/io)]
-      @(s/put-all! input (char-array invalid-message))
+    (with-open [stream (s/stream)]
+      (s/put-all! stream (char-array invalid-message))
 
       (t/is
        (match?
@@ -117,22 +95,18 @@
 
           :cognitect.anomalies/message
           "Failed to validate against schema :clojure-dap.schema/message"}]
-        (stream/read-message input)))
-
-      (stream/close-io! io-pair)))
+        (stream/read-message stream)))))
 
   (t/testing "returns an anomaly if the stream closes"
-    (let [{:keys [input _output] :as io-pair} (stream/io)]
-      (s/close! input)
+    (with-open [stream (s/stream)]
+      (s/close! stream)
 
       (t/is (match?
              [:de.otto.nom.core/anomaly
               :cognitect.anomalies/incorrect
               {:cognitect.anomalies/message "Received a non-character while reading the next DAP message. A nil probably means the stream closed."
                ::stream/value nil}]
-             (stream/read-message input)))
-
-      (stream/close-io! io-pair))))
+             (stream/read-message stream))))))
 
 (t/deftest render-header
   (t/testing "nil / empty map produces an empty header"
@@ -155,14 +129,13 @@
                :arguments {:threadId 3}}))))
 
   (t/testing "we can round trip through the render and read functions"
-    (let [message {:seq 153
-                   :type "request"
-                   :command "next"
-                   :arguments {:threadId 3}}
-          {:keys [input _output] :as io-pair} (stream/io)]
-      @(s/put-all! input (char-array (stream/render-message message)))
-      (t/is (match? message (stream/read-message input)))
-      (stream/close-io! io-pair)))
+    (with-open [stream (s/stream)]
+      (let [message {:seq 153
+                     :type "request"
+                     :command "next"
+                     :arguments {:threadId 3}}]
+        (s/put-all! stream (char-array (stream/render-message message)))
+        (t/is (match? message (stream/read-message stream))))))
 
   (t/testing "a bad message returns an anomaly"
     (t/is
@@ -185,57 +158,59 @@
         :seq 153
         :type "reqest"})))))
 
-(t/deftest java-io->io
-  (t/testing "returns an IO pair with the reader attached to the input stream (character by character) and output stream attached to the writer (whole strings)"
-    (with-open [reader (io/reader (char-array "Hello, World!"))
+(t/deftest reader-into-stream!
+  (t/testing "it reads a reader into"
+    (with-open [stream (s/stream)
+                reader (io/reader (.getBytes "abc"))]
+      (stream/reader-into-stream!
+       {:reader reader
+        :stream stream})
+      (t/is (match? [\a \b \c] (s/stream->seq (s/map char stream))))
+
+      (t/testing "and closes the stream at the end"
+        (t/is (s/closed? stream)))))
+
+  (t/testing "if the stream is already closed it stops instantly"
+    (with-open [stream (s/stream)
+                reader (io/reader (.getBytes "abc"))]
+      (s/close! stream)
+      (stream/reader-into-stream!
+       {:reader reader
+        :stream stream})
+      (t/is (empty? (s/stream->seq (s/map char stream))))
+
+      (t/testing "but the reader is still open and can be read"
+        (t/is (= \a (char (.read reader)))))))
+
+  (t/testing "if the reader is closed the stream closes too"
+    (with-open [stream (s/stream)
+                reader (io/reader (.getBytes "abc"))]
+      (.close reader)
+      (stream/reader-into-stream!
+       {:reader reader
+        :stream stream})
+      (t/is (s/closed? stream))
+      (t/is (thrown? java.io.IOException (.read reader)))
+      (t/is (empty? (s/stream->seq (s/map char stream)))))))
+
+(t/deftest stream-into-writer!
+  (t/testing "writes everything into the writer"
+    (with-open [stream (s/stream)
                 writer (java.io.StringWriter.)]
-      (let [{:keys [input output] :as io-pair}
-            (stream/java-io->io
-             {:reader reader
-              :writer writer})]
+      (s/put-all! stream ["foo" "bar" "baz"])
+      (stream/stream-into-writer!
+       {:writer writer
+        :stream stream})
+      (t/is (= "foobarbaz" (str writer)))))
 
-        (t/is (= (seq "Hello, World!") (s/stream->seq input 100)))
-
-        @(s/put! output "How do you do?")
-
-        (tutil/block-until
-         "StringWriter contains something"
-         #(seq (str writer)))
-
-        (t/is (= "How do you do?" (str writer)))
-        (stream/close-io! io-pair))))
-
-  (t/testing "if the reader closes, the input closes"
-    (with-open [reader (java.io.StringReader. "Hello, World!")
+  (t/testing "writing to a closed stream does nothing"
+    (with-open [stream (s/stream)
                 writer (java.io.StringWriter.)]
-      (let [{:keys [input output] :as io-pair}
-            (stream/java-io->io
-             {:reader reader
-              :writer writer})]
+      (.close writer)
+      (stream/stream-into-writer!
+       {:writer writer
+        :stream stream})
+      (t/is (= "" (str writer)))
 
-        (.close reader)
-
-        (tutil/block-until
-         "Input closed"
-         #(s/closed? input))
-
-        (t/is (s/closed? input))
-        (t/is (not (s/closed? output)))
-        (stream/close-io! io-pair))))
-
-  (t/testing "if the writer closes, the output closes"
-    (with-open [reader (io/reader (char-array "Hello, World!"))
-                writer (io/writer *err*)]
-      (let [{:keys [_input output] :as io-pair}
-            (stream/java-io->io
-             {:reader reader
-              :writer writer})]
-        (.close writer)
-        @(s/put! output "How do you do?")
-
-        (tutil/block-until
-         "Output closed"
-         #(s/closed? output))
-
-        (t/is (s/closed? output))
-        (stream/close-io! io-pair)))))
+      (t/testing "but the stream is drained"
+        (s/drained? stream)))))

@@ -7,32 +7,10 @@
             [jsonista.core :as json]
             [taoensso.timbre :as log]
             [manifold.stream :as s]
-            [clojure-dap.util :as util]
             [clojure-dap.schema :as schema]))
 
 (def header-sep "\r\n")
 (def double-header-sep (str header-sep header-sep))
-
-(schema/define! ::io
-  [:map
-   [:input [:fn s/stream?]]
-   [:output [:fn s/stream?]]])
-
-(def ^:dynamic *stream-buffer-size* 1024)
-
-(defn io
-  "Create an input/output stream pair. Input is coming towards your code, output is heading out from your code."
-  []
-  {:input (s/stream *stream-buffer-size*)
-   :output (s/stream *stream-buffer-size*)})
-(m/=> io [:=> [:cat] ::io])
-
-(defn close-io!
-  "Closes the input and output of an IO pair."
-  [{:keys [input output]}]
-  (s/close! input)
-  (s/close! output))
-(m/=> close-io! [:=> [:cat ::io] nil?])
 
 (defn parse-header
   "Given a header string of the format 'Content-Length: 119\\n\\n' it returns a map containing the key value pairs."
@@ -116,46 +94,45 @@
   [:cat [:or [:map-of keyword? any?] nil?]]
   (schema/result string?)])
 
-(defn java-io->io
-  "Takes a java.io.Reader and java.io.Writer and attaches them to a manifold stream IO pair. The returned io pair works on a character by character basis for reading into input and string basis for outputting to the writer."
-  [{:keys [reader writer]}]
-
-  (let [{:keys [input output] :as io-pair} (io)]
-    (util/with-thread ::java-io-input-reader
-      (loop []
-        (when-not (s/closed? input)
-          (let [char-int
-                (try
+(defn reader-into-stream!
+  "Pour a reader into a stream. Once we get a -1 or an error on .read we close both ends."
+  [{:keys [reader stream] :as opts}]
+  (when-not (s/closed? stream)
+    (let [value (try
                   (.read reader)
-                  (catch Exception e
-                    (log/error e "Error while reading in java-io->io")))]
-            (if (or (nil? char-int) (= -1 char-int))
-              (do
-                (s/close! input)
-                (.close reader))
-              (do
-                @(s/put! input (char char-int))
-                (recur)))))))
-
-    (util/with-thread ::java-io-output-writer
-      (loop []
-        (when-not (s/closed? output)
-          (when-let [to-write @(s/take! output)]
-            (try
-              (.write writer to-write)
-              (.flush writer)
-              (catch java.io.IOException ex
-                (log/error ex "Error while writing to writer in java-io->io, closing output stream since it's probably closed")
-                (s/close! output)
-                (.close writer)))
-            (recur)))))
-
-    io-pair))
+                  (catch java.io.IOException e
+                    (log/error e "Exception while reading into stream")
+                    -1))]
+      (if (= -1 value)
+        (s/close! stream)
+        (do
+          (s/put! stream value)
+          (recur opts))))))
 (m/=>
- java-io->io
+ reader-into-stream!
+ [:=>
+  [:cat
+   [:map
+    [:reader [:fn #(instance? java.io.Reader %)]]
+    [:stream [:fn s/stream?]]]]
+  nil?])
+
+(defn stream-into-writer!
+  "Pour a stream into a writer. If the stream closes then we close the writer too."
+  [{:keys [stream writer]}]
+  (s/consume
+   (fn [value]
+     (try
+       (.write writer value)
+       (catch java.io.IOException e
+         (log/error e "Exception while writing into writer"))))
+   stream)
+  nil)
+(m/=>
+ stream-into-writer!
  [:=>
   [:cat
    [:map
     [:writer [:fn #(instance? java.io.Writer %)]]
-    [:reader [:fn #(instance? java.io.Reader %)]]]]
-  ::io])
+    [:stream [:fn s/stream?]]]]
+  nil?])
