@@ -1,13 +1,9 @@
 (ns clojure-dap.server
-  "Core of the system, give it some IO to communicate with the client through and an nREPL server to drive from user inputs and it'll handle the rest. Understands both the DAP and nREPL messages, relaying ideas between the two."
-  (:require [clojure.core.match :refer [match]]
-            [taoensso.timbre :as log]
+  "Core of the system, give it some IO to communicate with the client through it'll handle the rest. Understands DAP messages and eventually nREPL too, acting as the trade hub of all the various processes, servers and clients."
+  (:require [taoensso.timbre :as log]
             [manifold.stream :as s]
-            [manifold.deferred :as d]
             [malli.core :as m]
-            [clojure-dap.schema :as schema]
-            [clojure-dap.util :as util]
-            [clojure-dap.stream :as stream]))
+            [clojure-dap.schema :as schema]))
 
 (defn auto-seq
   "Returns a function that when called returns a sequence number one greater than the last time it was called. Starts at 1."
@@ -23,116 +19,70 @@
    [:=> [:cat] number?]]])
 
 (defn handle-client-input
-  "Takes a message from a DAP client and responds accordingly."
-  [{:keys [input respond emit]}]
-  (match input
-    {:type "request"
-     :command "initialize"}
-    (do
-      (respond
-       {:success true
+  "Takes a message from a DAP client and a next-seq function (always returns the next sequence number, maintains it's own state) and returns any required responses in a seq of some kind."
+  [{:keys [input next-seq]}]
+  (let [req-seq (:seq input)]
+    (case (:command input)
+      "initialize"
+      [{:type "response"
+        :command "initialize"
+        :seq (next-seq)
+        :request_seq req-seq
+        :success true
         :body {:supportsCancelRequest false
 
                ;; TODO Enable this one when we support it.
                ;; It's called when the initialization is complete.
-               :supportsConfigurationDoneRequest false}})
-      (emit
-       {:event "initialized"}))
+               :supportsConfigurationDoneRequest false}}
+       {:type "event"
+        :event "initialized"
+        :seq (next-seq)}]
 
-    {:type "request"
-     :command "launch"}
-    (respond
-     {:success true})
+      "launch"
+      [{:type "response"
+        :command "launch"
+        :seq (next-seq)
+        :request_seq req-seq
+        :success true
+        :body {}}])))
 
-    ;; We should rarely (if ever) get here because the Malli instrumentation.
-    :else
-    (respond
-     {:success false
-      :message "Cound not handle client input."})))
 (m/=>
  handle-client-input
  [:=>
   [:cat [:map
          [:input ::schema/message]
-         [:respond [:function [:=> [:cat map?] any?]]]
-         [:emit [:function [:=> [:cat map?] any?]]]]]
-  any?])
+         [:next-seq [:function [:=> [:cat] number?]]]]]
+  [:sequential ::schema/message]])
 
-(defn start
-  "Creates a new server that contains a few processes. Returns a server that you can pass to the stop function to stop. It speaks :clojure-dap.schema/message maps, something outside of this should translate those messages to and from the DAP wire format.
+(defn run
+  "Consumes messages from the input stream and writes the respones to the output stream. We work with Clojure data structures at this level of abstraction, another system should handle the encoding and decoding of DAP messages.
 
-  Assumes the messages heading in and out of these streams are schema checked elsewhere when they're encoded and decoded.
+  Errors that occur in handle-client-input are fed into the output-stream as errors."
+  [{:keys [input-stream output-stream]}]
+  (let [next-seq (auto-seq)]
+    (s/connect-via
+     input-stream
+     (fn [input]
+       (let [outputs (try
+                       (handle-client-input
+                        {:input input
+                         :next-seq next-seq})
+                       (catch Throwable e
+                         (log/error e "Failed to handle client input")
+                         [{:seq (next-seq)
+                           :request_seq (:seq input)
+                           :type "response"
+                           :command (:command input)
+                           :success false
+                           :message (str "Error while handling input\n" (ex-message e))}]))]
+         (s/put-all! output-stream outputs)))
 
-  This is essentially the bridge between a DAP client and an nREPL."
-  [{:keys [client-io nrepl-io]}]
-  (let [next-seq (auto-seq)
-        stop-promise! (promise)
-        stop-fn (fn []
-                  (deliver stop-promise! ::stop)
-                  (stream/close-io! client-io)
-                  (stream/close-io! nrepl-io)
-                  ::stopped)]
-
-    (util/with-thread ::client-read-loop
-      (loop []
-        (let [input @(d/alt stop-promise! (s/take! (:input client-io)))]
-          (log/trace "Handling input in client read loop" input)
-
-          (if (or (nil? input) (= input ::stop))
-            (stop-fn)
-            (letfn [(respond [message]
-                      (s/put!
-                       (:output client-io)
-                       (merge
-                        {:type "response"
-                         :seq (next-seq)
-                         :request_seq (:seq input)
-                         :command (:command input)}
-                        message)))
-
-                    (emit [message]
-                      (s/put!
-                       (:output client-io)
-                       (merge
-                        {:type "event"
-                         :seq (next-seq)}
-                        message)))]
-              (try
-                (handle-client-input
-                 {:input input
-                  :respond respond
-                  :emit emit})
-                (catch Exception e
-                  (log/error e "Error from handle-client-input")
-                  (respond
-                   {:success false
-                    :message (str "Error while handling input: " (.getMessage e))})))
-              (recur))))))
-
-    (util/with-thread ::nrepl-read-loop
-      (loop []
-        (let [input @(d/alt stop-promise! (s/take! (:input nrepl-io)))]
-          (if (or (nil? input) (= input ::stop))
-            (stop-fn)
-            (recur)))))
-
-    {:stop stop-fn
-     :stop-promise! stop-promise!}))
+     output-stream)
+    nil))
 (m/=>
- start
+ run
  [:=>
   [:cat [:map
-         [:client-io ::stream/io]
-         [:nrepl-io ::stream/io]]]
-  [:map [:stop fn?]]])
-
-(defn stop
-  "Stops the given server process."
-  [server]
-  ((:stop server))
-  nil)
-(m/=>
- stop
- [:=>
-  [:cat [:map [:stop fn?]]]
+         [:input-stream [:fn s/stream?]]
+         [:output-stream [:fn s/stream?]]]]
   nil?])

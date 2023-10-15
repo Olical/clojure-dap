@@ -1,23 +1,8 @@
 (ns clojure-dap.server-test
   (:require [clojure.test :as t]
+            [matcher-combinators.test]
             [manifold.stream :as s]
-            [clojure-dap.server :as server]
-            [clojure-dap.stream :as stream]
-            [clojure-dap.test-util :as tutil]))
-
-(defn start-test-server []
-  (let [opts {:client-io (stream/io)
-              :nrepl-io (stream/io)}]
-    (merge
-     opts
-     (server/start opts))))
-
-(defn with-server [f]
-  (let [server (start-test-server)]
-    (try
-      (f server)
-      (finally
-        (server/stop server)))))
+            [clojure-dap.server :as server]))
 
 (t/deftest auto-seq
   (t/testing "starts at 1 and auto increments"
@@ -26,61 +11,91 @@
       (t/is (= 2 (next-seq)))
       (t/is (= 3 (next-seq))))))
 
-(t/deftest start-stop
-  (t/testing "we can start and stop the system"
-    (let [server (start-test-server)]
-      (t/is server)
-      (t/is (nil? (server/stop server))))))
-
-(t/deftest minimal-flow
-  (t/testing "we can start a server, send an initialized event and get capabilities and an initialized response back out"
-    (with-server
-      (fn [{:keys [client-io] :as _server}]
-        (s/put!
-         (:input client-io)
-         {:seq 1
-          :type "request"
-          :command "initialize"
-          :arguments {:adapterID "12345"}})
-        (t/is (match?
+(t/deftest handle-client-input
+  (t/testing "given an initialize request, responds and emits the initialized event"
+    (t/is (= [{:body {:supportsCancelRequest false
+                      :supportsConfigurationDoneRequest false}
+               :command "initialize"
+               :request_seq 1
+               :seq 1
+               :success true
+               :type "response"}
+              {:event "initialized", :seq 2, :type "event"}]
+             (server/handle-client-input
+              {:next-seq (server/auto-seq)
+               :input
                {:seq 1
-                :request_seq 1
-                :type "response"
+                :type "request"
                 :command "initialize"
-                :success true
-                :body {:supportsCancelRequest false}}
-               (tutil/try-take (:output client-io))))
-        (t/is (match?
-               {:seq 2
-                :type "event"
-                :event "initialized"}
-               (tutil/try-take (:output client-io))))
+                :arguments {:adapterID "12345"}}}))))
 
-        (t/testing "unknown / unhandled messages get an error response"
-          (s/put!
-           (:input client-io)
-           {:seq 3
-            :type "request"
-            :command "unknownthing"
-            :arguments {}})
-          (t/is (match?
-                 {:seq 3
-                  :request_seq 3
-                  :type "response"
-                  :command "unknownthing"
-                  :success false
-                  :message #"Error while handling input"}
-                 (tutil/try-take (:output client-io)))))))))
+  (t/testing "given a launch request, it responds with success (a noop)"
+    (t/is (= [{:command "launch"
+               :request_seq 1
+               :seq 1
+               :success true
+               :type "response"
+               :body {}}]
+             (server/handle-client-input
+              {:next-seq (server/auto-seq)
+               :input
+               {:seq 1
+                :type "request"
+                :command "launch"
+                :arguments {}}})))))
 
-;; -> initialise request
-;; <- capabilities
+(t/deftest run
+  (t/testing "multiple inputs generate multiple outputs"
+    (with-open [input-stream (s/stream 16)
+                output-stream (s/stream 16)]
+      (s/put-all!
+       input-stream
+       [{:seq 1
+         :type "request"
+         :command "initialize"
+         :arguments {:adapterID "12345"}}
+        {:seq 2
+         :type "request"
+         :command "launch"
+         :arguments {}}])
+      (s/close! input-stream)
+      (server/run
+       {:input-stream input-stream
+        :output-stream output-stream})
+      (t/is (= [{:body {:supportsCancelRequest false
+                        :supportsConfigurationDoneRequest false}
+                 :command "initialize"
+                 :request_seq 1
+                 :seq 1
+                 :success true
+                 :type "response"}
+                {:event "initialized", :seq 2, :type "event"}
+                {:body {}
+                 :command "launch"
+                 :request_seq 2
+                 :seq 3
+                 :success true
+                 :type "response"}]
+               (vec (s/stream->seq output-stream))))))
 
-;; <- initialised event
-
-;; ONE POSSIBILITY
-;; <- terminated event
-;; <- exited event
-
-;; Other exits:
-;; The terminate request is sent from the client to the debug adapter in order to shut down the debuggee gracefully. Clients should only call this request if the capability supportsTerminateRequest is true.
-;; The disconnect request asks the debug adapter to disconnect from the debuggee (thus ending the debug session) and then to shut down itself (the debug adapter). (which may also terminate if the opt is true!)
+  (t/testing "bad inputs or internal errors return errors to the client"
+    (with-open [input-stream (s/stream 16)
+                output-stream (s/stream 16)]
+      (s/put!
+       input-stream
+       {:seq 1
+        :type "request"
+        :command "initializor"
+        :arguments {:adapterID "12345"}})
+      (s/close! input-stream)
+      (server/run
+       {:input-stream input-stream
+        :output-stream output-stream})
+      (t/is (match?
+             [{:seq 1
+               :request_seq 1
+               :type "response"
+               :command "initializor"
+               :success false
+               :message #"Error while handling input"}]
+             (vec (s/stream->seq output-stream)))))))

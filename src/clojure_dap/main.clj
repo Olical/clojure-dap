@@ -8,7 +8,6 @@
             [malli.instrument :as mi]
             [malli.dev.pretty :as malli-pretty]
             [manifold.stream :as s]
-            [clojure-dap.client :as client]
             [clojure-dap.server :as server]
             [clojure-dap.stream :as stream]))
 
@@ -35,32 +34,18 @@
   (log/info "Initialising Malli instrumentation")
   (mi/instrument! {:report (malli-pretty/thrower)})
 
-  (let [{:keys [client-io anomalies]}
-        (client/create
-         (stream/java-io->io
-          {:reader (io/reader System/in)
-           :writer (io/writer System/out)}))
-        server (server/start
-                {:client-io client-io
-                 :nrepl-io (stream/io)})]
-    (s/map #(log/error "Unhandled anomaly!" %) anomalies)
+  ;; {:reader (io/reader System/in)
+  ;;  :writer (io/writer System/out)}
 
-    (.addShutdownHook
-     (Runtime/getRuntime)
-     (Thread. ^Runnable
-      (fn []
-        (log/info "Shutdown hook triggered, shutting down...")
-        (server/stop server)
-        (stream/close-io! client-io)
-        (shutdown-agents)
-        (log/info "All done, goodbye!"))))
+  (.addShutdownHook
+   (Runtime/getRuntime)
+   (Thread. ^Runnable
+    (fn []
+      (log/info "Shutdown hook triggered, shutting down...")
+      (shutdown-agents)
+      (log/info "All done, goodbye!"))))
 
-    (log/info "Server started in single session mode (multi session mode will come later)")
+  (log/info "Server started in single session mode (multi session mode will come later)")
 
-    @(:stop-promise! server)))
-(m/=>
- run
- [:=>
-  [:cat
-   [:map]]
-  any?])
+  @(promise))
+(m/=> run [:=> [:cat [:map]] any?])
