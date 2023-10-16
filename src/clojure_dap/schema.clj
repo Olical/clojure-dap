@@ -2,6 +2,7 @@
   "Schema registration and validation."
   (:require [clojure.string :as str]
             [malli.core :as m]
+            [malli.experimental :as mx]
             [malli.error :as me]
             [malli.util :as mu]
             [malli.registry :as mr]
@@ -19,16 +20,16 @@
 ;; Should make repeated validate calls fairly efficient.
 (defonce explainers! (atom {}))
 
-(defn define!
+(mx/defn define! :- :qualified-keyword
   "Define a new schema, accepts a qualified keyword and a schema. Will be precompiled into a explainer. It may refer to other previously defined schemas by their qualified keyword. Returns the keyword for the schema you're defining so you can embed it in other schemas."
-  [id schema]
+  [id :- :qualified-keyword
+   schema :- :some]
   (swap! schemas! assoc id schema)
 
   ;; Reset the cache each time so we don't get into weird dev states.
   (reset! explainers! {})
 
   id)
-(m/=> define! [:=> [:cat :qualified-keyword some?] :qualified-keyword])
 
 (define! ::id :qualified-keyword)
 (define! ::anomaly [:fn nom/abominable?])
@@ -38,9 +39,9 @@
   [schema]
   [:or schema ::anomaly])
 
-(defn- upsert-explainer!
+(mx/defn ^:private upsert-explainer! :- (result fn?)
   "Either return the explainer if compiled already or compile the explainer and cache it. Can throw malli errors if the schema is bad."
-  [id]
+  [id :- ::id]
   (let [schema (get @schemas! id)]
     (if schema
       (if-let [explainer (get @explainers! id)]
@@ -51,11 +52,11 @@
       (nom/fail
        ::anom/not-found
        {::anom/message (str "Unknown schema: " id)}))))
-(m/=> upsert-explainer! [:=> [:cat ::id] (result fn?)])
 
-(defn validate
+(mx/defn validate :- (result :nil)
   "Validates the value against the schema referred to by the qualified keyword. Returns nil when everything is okay, returns an anomaly map explaining the issue when there is a problem."
-  [id value]
+  [id :- ::id
+   value :- :any]
   (nom/let-nom> [explainer (upsert-explainer! id)]
     (when-let [explanation (explainer value)]
       (nom/fail
@@ -63,9 +64,9 @@
        {::anom/message (str "Failed to validate against schema " id)
         ::explanation explanation
         ::humanized (me/humanize explanation)}))))
-(m/=> validate [:=> [:cat ::id any?] (result nil?)])
 
-(defn dap-json-schema->malli [definition-key]
+(mx/defn dap-json-schema->malli :- vector?
+  [definition-key :- :keyword]
   (let [prepared-schema
         (json-schema/prepare-schema
          {:$schema "http://json-schema.org/draft-07/schema"
@@ -89,7 +90,6 @@
          true
          (catch clojure.lang.ExceptionInfo _e
            false)))]))
-(m/=> dap-json-schema->malli [:=> [:cat keyword?] vector?])
 
 (define! ::message
   [:or
