@@ -5,10 +5,29 @@
             [de.otto.nom.core :as nom]
             [cognitect.anomalies :as anom]
             [jsonista.core :as json]
-            [clojure-dap.schema :as schema]))
+            [clojure-dap.schema :as schema]
+            [camel-snake-kebab.core :as csk]))
 
 (def header-sep "\r\n")
 (def double-header-sep (str header-sep header-sep))
+
+(schema/define! ::message
+  (into
+   [:or]
+
+   (map
+    (fn [k]
+      (schema/define! k (schema/dap-json-schema->malli (csk/->PascalCaseKeyword (name k))))))
+
+   [::initialize-request
+    ::initialize-response
+    ::initialized-event
+
+    ::launch-request
+    ::launch-response
+
+    ::next-request
+    ::next-response]))
 
 (mx/defn parse-header :- (schema/result [:map-of :keyword :any])
   "Given a header string of the format 'Content-Length: 119\\n\\n' it returns a map containing the key value pairs."
@@ -28,12 +47,12 @@
         ::header header
         ::error (Throwable->map e)}))))
 
-(mx/defn parse-message :- (schema/result ::schema/message)
+(mx/defn parse-message :- (schema/result ::message)
   "Parse a DAP message from a string, returning an anomaly or a valid message."
   [body :- :string]
   (try
     (let [parsed (json/read-value body json/keyword-keys-object-mapper)]
-      (nom/with-nom [(schema/validate ::schema/message parsed)]
+      (nom/with-nom [(schema/validate ::message parsed)]
         parsed))
     (catch Exception e
       (nom/fail
@@ -56,6 +75,6 @@
 (mx/defn render-message :- (schema/result :string)
   "Takes a DAP message, validates it against the various possible schemas and then encodes it as a DAP JSON message with a header. This string can then be sent across the wire to the development tool."
   [message :- [:maybe [:map-of :keyword :any]]]
-  (nom/with-nom [(schema/validate ::schema/message message)]
+  (nom/with-nom [(schema/validate ::message message)]
     (let [encoded (json/write-value-as-string message)]
       (str (render-header {:Content-Length (count (.getBytes encoded))}) encoded))))

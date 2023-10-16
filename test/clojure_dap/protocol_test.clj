@@ -63,7 +63,7 @@
                  :type "reqest"}}
 
         :cognitect.anomalies/message
-        "Failed to validate against schema :clojure-dap.schema/message"}]
+        "Failed to validate against schema :clojure-dap.protocol/message"}]
       (protocol/render-message
        {:arguments {:threadId 3}
         :command "next"
@@ -87,7 +87,7 @@
              [:de.otto.nom.core/anomaly
               :cognitect.anomalies/incorrect
               {:cognitect.anomalies/message
-               "Failed to validate against schema :clojure-dap.schema/message",
+               "Failed to validate against schema :clojure-dap.protocol/message",
                :clojure-dap.schema/explanation
                {:value
                 {:arguments {:threadId 3},

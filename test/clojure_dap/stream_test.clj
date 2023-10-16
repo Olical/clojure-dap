@@ -80,7 +80,7 @@
                    :type "reqest"}}
 
           :cognitect.anomalies/message
-          "Failed to validate against schema :clojure-dap.schema/message"}]
+          "Failed to validate against schema :clojure-dap.protocol/message"}]
         (stream/read-message stream)))))
 
   (t/testing "returns an anomaly if the stream closes"

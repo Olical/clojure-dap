@@ -8,8 +8,7 @@
             [malli.registry :as mr]
             [json-schema.core :as json-schema]
             [cognitect.anomalies :as anom]
-            [de.otto.nom.core :as nom]
-            [camel-snake-kebab.core :as csk]))
+            [de.otto.nom.core :as nom]))
 
 (defonce schemas! (atom (merge (m/default-schemas) (mu/schemas))))
 
@@ -91,21 +90,3 @@
          true
          (catch clojure.lang.ExceptionInfo _e
            false)))]))
-
-(define! ::message
-  (into
-   [:or]
-
-   (map
-    (fn [k]
-      (define! k (dap-json-schema->malli (csk/->PascalCaseKeyword (name k))))))
-
-   [::initialize-request
-    ::initialize-response
-    ::initialized-event
-
-    ::launch-request
-    ::launch-response
-
-    ::next-request
-    ::next-response]))

@@ -3,7 +3,8 @@
             [matcher-combinators.test]
             [malli.core :as m]
             [de.otto.nom.core :as nom]
-            [clojure-dap.schema :as schema]))
+            [clojure-dap.schema :as schema]
+            [clojure-dap.protocol :as protocol]))
 
 (t/deftest assertions
   (t/testing "we must provide the right types"
@@ -42,7 +43,7 @@
     (t/is (match?
            nil
            (schema/validate
-            ::schema/message
+            ::protocol/message
             {:seq 0
              :type "request"
              :command "initialize"

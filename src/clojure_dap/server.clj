@@ -3,7 +3,7 @@
   (:require [taoensso.timbre :as log]
             [manifold.stream :as s]
             [malli.experimental :as mx]
-            [clojure-dap.schema :as schema]))
+            [clojure-dap.protocol :as protocol]))
 
 (mx/defn auto-seq :- [:function [:=> [:cat] :int]]
   "Returns a function that when called returns a sequence number one greater than the last time it was called. Starts at 1."
@@ -12,11 +12,11 @@
     (fn []
       (swap! state inc))))
 
-(mx/defn handle-client-input :- [:sequential ::schema/message]
+(mx/defn handle-client-input :- [:sequential ::protocol/message]
   "Takes a message from a DAP client and a next-seq function (always returns the next sequence number, maintains it's own state) and returns any required responses in a seq of some kind."
   [{:keys [input next-seq]}
    :- [:map
-       [:input ::schema/message]
+       [:input ::protocol/message]
        [:next-seq [:function [:=> [:cat] number?]]]]]
   (let [req-seq (:seq input)]
     (case (:command input)
