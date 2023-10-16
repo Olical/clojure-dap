@@ -98,4 +98,25 @@
                :command "initializor"
                :success false
                :message #"Error while handling input"}]
-             (vec (s/stream->seq output-stream)))))))
+             (vec (s/stream->seq output-stream))))))
+
+  (t/testing "a closed output closes the input, output remains empty and input is drained"
+    (with-open [input-stream (s/stream 16)
+                output-stream (s/stream 16)]
+      (s/put-all!
+       input-stream
+       [{:seq 1
+         :type "request"
+         :command "initialize"
+         :arguments {:adapterID "12345"}}
+        {:seq 2
+         :type "request"
+         :command "launch"
+         :arguments {}}])
+      (s/close! output-stream)
+      (server/run
+       {:input-stream input-stream
+        :output-stream output-stream})
+      (t/is (s/closed? input-stream))
+      (t/is (s/drained? input-stream))
+      (t/is (= [] (vec (s/stream->seq output-stream)))))))
