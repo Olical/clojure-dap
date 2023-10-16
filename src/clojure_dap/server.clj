@@ -2,6 +2,7 @@
   "Core of the system, give it some IO to communicate with the client through it'll handle the rest. Understands DAP messages and eventually nREPL too, acting as the trade hub of all the various processes, servers and clients."
   (:require [taoensso.timbre :as log]
             [manifold.stream :as s]
+            [manifold.deferred :as d]
             [malli.experimental :as mx]
             [clojure-dap.protocol :as protocol]))
 
@@ -43,7 +44,7 @@
         :success true
         :body {}}])))
 
-(mx/defn run :- :nil
+(mx/defn run :- [:fn d/deferred?]
   "Consumes messages from the input stream and writes the respones to the output stream. We work with Clojure data structures at this level of abstraction, another system should handle the encoding and decoding of DAP messages.
 
   Errors that occur in handle-client-input are fed into the output-stream as errors."
@@ -69,5 +70,4 @@
                   :message (str "Error while handling input\n" (ex-message e))}]))
             (s/put-all! output-stream)))
 
-     output-stream)
-    nil))
+     output-stream)))
