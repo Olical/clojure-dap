@@ -1,7 +1,7 @@
 (ns clojure-dap.stream
   "Tools to work with DAP streams and streams in general."
   (:require [clojure.string :as str]
-            [malli.core :as m]
+            [malli.experimental :as mx]
             [de.otto.nom.core :as nom]
             [cognitect.anomalies :as anom]
             [jsonista.core :as json]
@@ -12,9 +12,13 @@
 (def header-sep "\r\n")
 (def double-header-sep (str header-sep header-sep))
 
-(defn parse-header
+(schema/define! ::stream [:fn s/stream?])
+(schema/define! ::reader [:fn #(instance? java.io.Reader %)])
+(schema/define! ::writer [:fn #(instance? java.io.Writer %)])
+
+(mx/defn parse-header :- (schema/result [:map-of :keyword :any])
   "Given a header string of the format 'Content-Length: 119\\n\\n' it returns a map containing the key value pairs."
-  [header]
+  [header :- :string]
   (try
     (into
      {}
@@ -29,11 +33,10 @@
        {::anom/message "Failed to parse DAP header"
         ::header header
         ::error (Throwable->map e)}))))
-(m/=> parse-header [:=> [:cat string?] (schema/result [:map-of keyword? any?])])
 
-(defn render-header
+(mx/defn render-header :- :string
   "Turns a map of k->v into a header string."
-  [x]
+  [x :- [:maybe [:map-of :keyword :any]]]
   (str
    (str/join
     (map
@@ -41,9 +44,8 @@
        (str (name k) ": " v header-sep))
      x))
    header-sep))
-(m/=> render-header [:=> [:cat [:or nil? [:map-of keyword? any?]]] string?])
 
-(defn read-message
+(mx/defn read-message :- (schema/result [:map-of :keyword :any])
   "Reads a DAP message from the input stream. Assumes a few things: The first character we're going to read will be the beginning of a new messages header AND the stream will consist of single characters.
 
   It works by reading the header (Content-Length: 119\\n\\n) until a double \\n\\n at which point it knows the Content-Length and can read the rest of the message.
@@ -51,7 +53,7 @@
   Once read, we decode the JSON body and validate it against the JSON schemas before returning the valid message or an anomaly.
 
   Will block until a message is read!"
-  [input-stream]
+  [input-stream :- ::stream]
   (loop [header-buffer ""]
     (let [next-char @(s/take! input-stream)]
       (if (char? next-char)
@@ -76,27 +78,20 @@
          ::anom/incorrect
          {::anom/message "Received a non-character while reading the next DAP message. A nil probably means the stream closed."
           ::value next-char})))))
-(m/=>
- read-message
- [:=>
-  [:cat [:fn s/stream?]]
-  (schema/result [:map-of keyword? any?])])
 
-(defn render-message
+(mx/defn render-message :- (schema/result :string)
   "Takes a DAP message, validates it against the various possible schemas and then encodes it as a DAP JSON message with a header. This string can then be sent across the wire to the development tool."
-  [message]
+  [message :- [:maybe [:map-of :keyword :any]]]
   (nom/with-nom [(schema/validate ::schema/message message)]
     (let [encoded (json/write-value-as-string message)]
       (str (render-header {:Content-Length (count (.getBytes encoded))}) encoded))))
-(m/=>
- render-message
- [:=>
-  [:cat [:or [:map-of keyword? any?] nil?]]
-  (schema/result string?)])
 
-(defn reader-into-stream!
+(mx/defn reader-into-stream! :- :nil
   "Pour a reader into a stream. Once we get a -1 or an error on .read we close both ends."
-  [{:keys [reader stream] :as opts}]
+  [{:keys [reader stream] :as opts}
+   :- [:map
+       [:reader ::reader]
+       [:stream ::stream]]]
   (when-not (s/closed? stream)
     (let [value (try
                   (.read reader)
@@ -108,18 +103,13 @@
         (do
           (s/put! stream value)
           (recur opts))))))
-(m/=>
- reader-into-stream!
- [:=>
-  [:cat
-   [:map
-    [:reader [:fn #(instance? java.io.Reader %)]]
-    [:stream [:fn s/stream?]]]]
-  nil?])
 
-(defn stream-into-writer!
+(mx/defn stream-into-writer! :- :nil
   "Pour a stream into a writer. If the stream closes then we close the writer too."
-  [{:keys [stream writer]}]
+  [{:keys [stream writer]}
+   :- [:map
+       [:writer ::writer]
+       [:stream ::stream]]]
   (s/consume
    (fn [value]
      (try
@@ -128,11 +118,3 @@
          (log/error e "Exception while writing into writer"))))
    stream)
   nil)
-(m/=>
- stream-into-writer!
- [:=>
-  [:cat
-   [:map
-    [:writer [:fn #(instance? java.io.Writer %)]]
-    [:stream [:fn s/stream?]]]]
-  nil?])
