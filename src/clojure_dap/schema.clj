@@ -34,9 +34,9 @@
 (define! ::id :qualified-keyword)
 (define! ::anomaly [:fn nom/abominable?])
 
-(defn result
+(mx/defn result :- vector?
   "Wraps the given schema in [:or ... :clojure-dap.schema/anomaly], prompting callers to handle your potential failure cases. Sort of modeled on Rust's Result<T, E> type which can return Ok(T) or Err(E)."
-  [schema]
+  [schema :- :some]
   [:or schema ::anomaly])
 
 (mx/defn ^:private upsert-explainer! :- (result fn?)
