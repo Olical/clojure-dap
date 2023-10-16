@@ -63,19 +63,19 @@
     (s/connect-via
      input-stream
      (fn [input]
-       (let [outputs (try
-                       (handle-client-input
-                        {:input input
-                         :next-seq next-seq})
-                       (catch Throwable e
-                         (log/error e "Failed to handle client input")
-                         [{:seq (next-seq)
-                           :request_seq (:seq input)
-                           :type "response"
-                           :command (:command input)
-                           :success false
-                           :message (str "Error while handling input\n" (ex-message e))}]))]
-         (s/put-all! output-stream outputs)))
+       (->> (try
+              (handle-client-input
+               {:input input
+                :next-seq next-seq})
+              (catch Throwable e
+                (log/error e "Failed to handle client input")
+                [{:seq (next-seq)
+                  :request_seq (:seq input)
+                  :type "response"
+                  :command (:command input)
+                  :success false
+                  :message (str "Error while handling input\n" (ex-message e))}]))
+            (s/put-all! output-stream)))
 
      output-stream)
     nil))
