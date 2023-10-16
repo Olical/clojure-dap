@@ -1,15 +1,16 @@
 (ns clojure-dap.main
   "Entrypoint for the actual program, handles starting of systems and CLI input."
-  (:require [clojure.java.io :as io]
-            [me.raynes.fs :as rfs]
+  (:require [me.raynes.fs :as rfs]
             [taoensso.timbre :as log]
             [taoensso.timbre.appenders.core :as appenders]
             [malli.experimental :as mx]
             [malli.instrument :as mi]
             [malli.dev.pretty :as malli-pretty]
-            [manifold.stream :as s]
-            [clojure-dap.server :as server]
-            [clojure-dap.stream :as stream]))
+            ;; [clojure.java.io :as io]
+            ;; [manifold.stream :as s]
+            ;; [clojure-dap.server :as server]
+            ;; [clojure-dap.stream :as stream]
+            ))
 
 (mx/defn run :- :nil
   "CLI entrypoint to the program, boots the system and handles any CLI args."
