@@ -2,7 +2,6 @@
   "Core of the system, give it some IO to communicate with the client through it'll handle the rest. Understands DAP messages and eventually nREPL too, acting as the trade hub of all the various processes, servers and clients."
   (:require [taoensso.timbre :as log]
             [manifold.stream :as s]
-            [malli.core :as m]
             [malli.experimental :as mx]
             [clojure-dap.schema :as schema]))
 
