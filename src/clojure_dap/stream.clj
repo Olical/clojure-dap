@@ -6,6 +6,7 @@
             [cognitect.anomalies :as anom]
             [taoensso.timbre :as log]
             [manifold.stream :as s]
+            [manifold.deferred :as d]
             [clojure-dap.schema :as schema]
             [clojure-dap.protocol :as protocol]))
 
@@ -54,7 +55,7 @@
           (s/put! stream value)
           (recur opts))))))
 
-(mx/defn stream-into-writer! :- :nil
+(mx/defn stream-into-writer! :- [:fn d/deferred?]
   "Pour a stream into a writer. If the stream closes then we close the writer too."
   [{:keys [stream writer]}
    :- [:map
@@ -66,5 +67,4 @@
        (.write writer value)
        (catch java.io.IOException e
          (log/error e "Exception while writing into writer"))))
-   stream)
-  nil)
+   stream))
