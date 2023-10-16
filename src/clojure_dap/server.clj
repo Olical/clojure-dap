@@ -3,24 +3,22 @@
   (:require [taoensso.timbre :as log]
             [manifold.stream :as s]
             [malli.core :as m]
+            [malli.experimental :as mx]
             [clojure-dap.schema :as schema]))
 
-(defn auto-seq
+(mx/defn auto-seq :- [:function [:=> [:cat] :int]]
   "Returns a function that when called returns a sequence number one greater than the last time it was called. Starts at 1."
   []
   (let [state (atom 0)]
     (fn []
       (swap! state inc))))
-(m/=>
- auto-seq
- [:=>
-  [:cat]
-  [:function
-   [:=> [:cat] number?]]])
 
-(defn handle-client-input
+(mx/defn handle-client-input :- [:sequential ::schema/message]
   "Takes a message from a DAP client and a next-seq function (always returns the next sequence number, maintains it's own state) and returns any required responses in a seq of some kind."
-  [{:keys [input next-seq]}]
+  [{:keys [input next-seq]}
+   :- [:map
+       [:input ::schema/message]
+       [:next-seq [:function [:=> [:cat] number?]]]]]
   (let [req-seq (:seq input)]
     (case (:command input)
       "initialize"
@@ -46,19 +44,14 @@
         :success true
         :body {}}])))
 
-(m/=>
- handle-client-input
- [:=>
-  [:cat [:map
-         [:input ::schema/message]
-         [:next-seq [:function [:=> [:cat] number?]]]]]
-  [:sequential ::schema/message]])
-
-(defn run
+(mx/defn run :- :nil
   "Consumes messages from the input stream and writes the respones to the output stream. We work with Clojure data structures at this level of abstraction, another system should handle the encoding and decoding of DAP messages.
 
   Errors that occur in handle-client-input are fed into the output-stream as errors."
-  [{:keys [input-stream output-stream]}]
+  [{:keys [input-stream output-stream]}
+   :- [:map
+       [:input-stream [:fn s/stream?]]
+       [:output-stream [:fn s/stream?]]]]
   (let [next-seq (auto-seq)]
     (s/connect-via
      input-stream
@@ -79,10 +72,3 @@
 
      output-stream)
     nil))
-(m/=>
- run
- [:=>
-  [:cat [:map
-         [:input-stream [:fn s/stream?]]
-         [:output-stream [:fn s/stream?]]]]
-  nil?])

@@ -4,16 +4,16 @@
             [me.raynes.fs :as rfs]
             [taoensso.timbre :as log]
             [taoensso.timbre.appenders.core :as appenders]
-            [malli.core :as m]
+            [malli.experimental :as mx]
             [malli.instrument :as mi]
             [malli.dev.pretty :as malli-pretty]
             [manifold.stream :as s]
             [clojure-dap.server :as server]
             [clojure-dap.stream :as stream]))
 
-(defn run
+(mx/defn run :- :nil
   "CLI entrypoint to the program, boots the system and handles any CLI args."
-  [opts]
+  [opts :- :map]
   (log/merge-config!
    {:appenders {;; Never log to stdout through timbre.
                 ;; This is because the DAP server may be communicating with a client over stdout.
@@ -47,5 +47,5 @@
 
   (log/info "Server started in single session mode (multi session mode will come later)")
 
-  @(promise))
-(m/=> run [:=> [:cat [:map]] any?])
+  @(promise)
+  nil)
