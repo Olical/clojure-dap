@@ -7,6 +7,7 @@
   mount/mount {:mvn/version "0.1.17"}
   nrepl/nrepl {:mvn/version "1.0.0"}
   metosin/jsonista {:mvn/version "0.3.7"}
+  camel-snake-kebab/camel-snake-kebab {:mvn/version "0.4.3"}
 
   com.taoensso/timbre {:mvn/version "6.2.2"}
 
