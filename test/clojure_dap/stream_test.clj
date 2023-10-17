@@ -96,7 +96,7 @@
 
 (t/deftest reader-into-stream!
   (t/testing "it reads a reader into"
-    (with-open [stream (s/stream)
+    (with-open [stream (s/stream 24)
                 reader (io/reader (.getBytes "abc"))]
       (stream/reader-into-stream!
        {:reader reader
@@ -107,7 +107,7 @@
         (t/is (s/closed? stream)))))
 
   (t/testing "if the stream is already closed it stops instantly"
-    (with-open [stream (s/stream)
+    (with-open [stream (s/stream 24)
                 reader (io/reader (.getBytes "abc"))]
       (s/close! stream)
       (stream/reader-into-stream!
@@ -119,7 +119,7 @@
         (t/is (= \a (char (.read reader)))))))
 
   (t/testing "if the reader is closed the stream closes too"
-    (with-open [stream (s/stream)
+    (with-open [stream (s/stream 24)
                 reader (io/reader (.getBytes "abc"))]
       (.close reader)
       (stream/reader-into-stream!

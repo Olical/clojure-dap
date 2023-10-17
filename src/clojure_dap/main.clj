@@ -46,20 +46,20 @@
          {:reader input-reader
           :stream input-byte-stream}))
 
+      ;; TODO Refactor this mapcat pattern into something reusable if it works.
       (util/with-thread ::writer
-        (stream/stream-into-writer!
-         ;; TODO Refactor this mapcat pattern into something reusable if it works.
-         {:stream (->> output-stream
-                       (s/mapcat
-                        (fn [message]
-                          (let [res (protocol/render-message message)]
-                            (if (nom/anomaly? res)
-                              (do
-                                @(s/put! anomalies-stream res)
-                                nil)
-                              [res])))))
+        @(stream/stream-into-writer!
+          {:stream (->> output-stream
+                        (s/mapcat
+                         (fn [message]
+                           (let [res (protocol/render-message message)]
+                             (if (nom/anomaly? res)
+                               (do
+                                 @(s/put! anomalies-stream res)
+                                 nil)
+                               [res])))))
 
-          :writer output-writer}))
+           :writer output-writer}))
 
       (util/with-thread ::message-reader
         (let [input-char-stream (s/transform
@@ -79,7 +79,7 @@
                        (fn [res]
                          (if (nom/anomaly? res)
                            (do
-                             (s/put! anomalies-stream res)
+                             @(s/put! anomalies-stream res)
                              nil)
                            [res]))
                        input-message-stream)

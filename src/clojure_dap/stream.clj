@@ -52,7 +52,7 @@
       (if (= -1 value)
         (s/close! stream)
         (do
-          (s/put! stream value)
+          @(s/put! stream value)
           (recur opts))))))
 
 (mx/defn stream-into-writer! :- [:fn d/deferred?]
