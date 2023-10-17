@@ -110,10 +110,11 @@
   (mi/instrument! {:report (malli-pretty/thrower)})
 
   (log/info "Starting server...")
-  (let [{:keys [server _anomalies-stream]}
+  (let [{:keys [server anomalies-stream]}
         (start-server-with-io
          {:input-reader (io/reader System/in)
           :output-writer (io/writer System/out)})]
+    (s/map #(log/warn "Anomaly" %) anomalies-stream)
     (log/info "Server started in single session mode (multi session mode will come later)")
     @server)
 
