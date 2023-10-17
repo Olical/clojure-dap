@@ -30,10 +30,7 @@
 
 (t/deftest render-message
   (t/testing "a simple valid message"
-    (t/is (= (str
-              "Content-Length: 72"
-              protocol/double-header-sep
-              "{\"seq\":153,\"type\":\"request\",\"command\":\"next\",\"arguments\":{\"threadId\":3}}")
+    (t/is (= "Content-Length: 72\r\n\r\n{\"arguments\":{\"threadId\":3},\"command\":\"next\",\"seq\":153,\"type\":\"request\"}"
              (protocol/render-message
               {:seq 153
                :type "request"

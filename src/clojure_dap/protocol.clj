@@ -6,7 +6,8 @@
             [cognitect.anomalies :as anom]
             [jsonista.core :as json]
             [clojure-dap.schema :as schema]
-            [camel-snake-kebab.core :as csk]))
+            [camel-snake-kebab.core :as csk]
+            [clojure-dap.util :as util]))
 
 (def header-sep "\r\n")
 (def double-header-sep (str header-sep header-sep))
@@ -76,5 +77,5 @@
   "Takes a DAP message, validates it against the various possible schemas and then encodes it as a DAP JSON message with a header. This string can then be sent across the wire to the development tool."
   [message :- [:maybe [:map-of :keyword :any]]]
   (nom/with-nom [(schema/validate ::message message)]
-    (let [encoded (json/write-value-as-string message)]
+    (let [encoded (json/write-value-as-string (util/walk-sorted-map message))]
       (str (render-header {:Content-Length (count (.getBytes encoded))}) encoded))))

@@ -22,3 +22,11 @@
                  @(util/with-thread ::foo
                     (assert false))
                  (catch AssertionError _))))))))
+
+(t/deftest walk-sorted-map
+  (t/testing "replaces all maps with sorted maps"
+    (let [res (util/walk-sorted-map {:foo 10 :bar {:baz 20}})]
+      (t/is (and (sorted? res) (map? res)))
+      (t/is (and (sorted? (:bar res)) (map? (:bar res))))
+      (t/is (= 10 (:foo res)))
+      (t/is (= 20 (get-in res [:bar :baz]))))))

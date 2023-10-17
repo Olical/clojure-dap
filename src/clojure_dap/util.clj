@@ -1,6 +1,8 @@
 (ns clojure-dap.util
   "Utility functions! Everyone's favourite namespace."
-  (:require [manifold.deferred :as d]
+  (:require [clojure.walk :as walk]
+            [manifold.deferred :as d]
+            [malli.experimental :as mx]
             [taoensso.timbre :as log]))
 
 (defmacro with-thread
@@ -16,3 +18,13 @@
        (catch Throwable t#
          (log/error t# "Caught error in thread" ~thread-name)
          (throw t#)))))
+
+(mx/defn walk-sorted-map :- [:and [:fn sorted?] :map]
+  "Turn the given map and all contained maps into sorted-maps. Useful when you want to JSON encode into a stable order."
+  [m :- :map]
+  (walk/postwalk
+   (fn [x]
+     (if (map? x)
+       (into (sorted-map) x)
+       x))
+   m))
