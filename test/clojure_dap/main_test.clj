@@ -16,14 +16,12 @@
                                  :type "request"
                                  :command "initialize"
                                  :arguments {:adapterID "12345"}})))]
-      (let [{:keys [server anomalies-stream]}
+      (let [{:keys [server-complete anomalies-stream]}
             (main/start-server-with-io
              {:input-reader input-reader
               :output-writer output-writer})]
 
-        @server
-
-        (s/close! anomalies-stream)
+        @server-complete
 
         (t/is (= (str/join
                   (map

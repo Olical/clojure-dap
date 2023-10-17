@@ -18,11 +18,13 @@
 ;; TODO Handle anomalies at all points. Needs more tests.
 (mx/defn start-server-with-io
   :- [:map
-      [:server [:fn d/deferred?]]
+      [:server-complete [:fn d/deferred?]]
       [:anomalies-stream ::stream/stream]]
   "Runs the server and plugs everything together with the provided reader and writer. Will handle encoding and decoding of messages into the JSON wire format.
 
-  Any anomalies from the client or the server are put into the anomalies-stream which is returned by this function alongside the server deferred."
+  Any anomalies from the client or the server are put into the anomalies-stream which is returned by this function.
+
+  A deferred that waits for all threads and streams to complete is also returned. You can wait on that with deref until everything has drained and completed."
   [{:keys [input-reader output-writer]}
    :- [:map
        [:input-reader ::stream/reader]
@@ -33,50 +35,53 @@
         output-stream (s/stream)
         anomalies-stream (s/stream)]
 
-    (util/with-thread ::reader
-      (stream/reader-into-stream!
-       {:reader input-reader
-        :stream input-byte-stream}))
+    (s/on-closed output-stream #(s/close! anomalies-stream))
 
-    (util/with-thread ::writer
-      (stream/stream-into-writer!
-       ;; TODO Refactor this mapcat pattern into something reusable if it works.
-       {:stream (->> output-stream
-                     (s/mapcat
-                      (fn [message]
-                        (let [res (protocol/render-message message)]
-                          (if (nom/anomaly? res)
-                            (do
-                              (s/put! anomalies-stream res)
-                              nil)
-                            [res])))))
+    {:anomalies-stream anomalies-stream
+     :server-complete
+     (d/zip
+      (util/with-thread ::reader
+        (stream/reader-into-stream!
+         {:reader input-reader
+          :stream input-byte-stream}))
 
-        :writer output-writer}))
+      (util/with-thread ::writer
+        (stream/stream-into-writer!
+         ;; TODO Refactor this mapcat pattern into something reusable if it works.
+         {:stream (->> output-stream
+                       (s/mapcat
+                        (fn [message]
+                          (let [res (protocol/render-message message)]
+                            (if (nom/anomaly? res)
+                              (do
+                                @(s/put! anomalies-stream res)
+                                nil)
+                              [res])))))
 
-    (util/with-thread ::message-reader
-      (let [input-char-stream (s/transform
-                               (comp
-                                (filter #(>= % 1))
-                                (map char))
-                               input-byte-stream)]
-        (loop []
-          (if (s/closed? input-byte-stream)
-            (s/close! input-message-stream)
-            (do
-              (s/put! input-message-stream (stream/read-message input-char-stream))
-              (recur))))))
+          :writer output-writer}))
 
-    {:server (server/run
-              {:input-stream (s/mapcat
-                              (fn [res]
-                                (if (nom/anomaly? res)
-                                  (do
-                                    (s/put! anomalies-stream res)
-                                    nil)
-                                  [res]))
-                              input-message-stream)
-               :output-stream output-stream})
-     :anomalies-stream anomalies-stream}))
+      (util/with-thread ::message-reader
+        (let [input-char-stream (s/transform
+                                 (comp
+                                  (filter #(>= % 1))
+                                  (map char))
+                                 input-byte-stream)]
+          (loop []
+            (if (s/closed? input-byte-stream)
+              (s/close! input-message-stream)
+              (do
+                @(s/put! input-message-stream (stream/read-message input-char-stream))
+                (recur))))))
+      (server/run
+       {:input-stream (s/mapcat
+                       (fn [res]
+                         (if (nom/anomaly? res)
+                           (do
+                             (s/put! anomalies-stream res)
+                             nil)
+                           [res]))
+                       input-message-stream)
+        :output-stream output-stream}))}))
 
 (mx/defn run :- :nil
   "CLI entrypoint to the program, boots the system and handles any CLI args."
@@ -110,12 +115,12 @@
   (mi/instrument! {:report (malli-pretty/thrower)})
 
   (log/info "Starting server...")
-  (let [{:keys [server anomalies-stream]}
+  (let [{:keys [server-complete anomalies-stream]}
         (start-server-with-io
          {:input-reader (io/reader System/in)
           :output-writer (io/writer System/out)})]
     (s/map #(log/warn "Anomaly" %) anomalies-stream)
     (log/info "Server started in single session mode (multi session mode will come later)")
-    @server)
+    @server-complete)
 
   nil)
