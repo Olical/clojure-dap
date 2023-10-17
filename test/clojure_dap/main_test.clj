@@ -6,6 +6,7 @@
             [clojure-dap.protocol :as protocol]
             [clojure-dap.main :as main]))
 
+;; TODO More tests, break it!
 (t/deftest start-server-with-io
   (t/testing "responds to an initialize request appropriately"
     (with-open [output-writer (java.io.StringWriter.)

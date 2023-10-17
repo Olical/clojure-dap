@@ -16,6 +16,7 @@
             [clojure-dap.protocol :as protocol]))
 
 ;; TODO Handle anomalies at all points. Needs more tests.
+;; TODO Move this somewhere out of main since it should basically just be CLI parsing and wiring.
 (mx/defn start-server-with-io
   :- [:map
       [:server-complete [:fn d/deferred?]]
@@ -72,6 +73,7 @@
               (do
                 @(s/put! input-message-stream (stream/read-message input-char-stream))
                 (recur))))))
+
       (server/run
        {:input-stream (s/mapcat
                        (fn [res]
