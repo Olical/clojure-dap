@@ -114,7 +114,12 @@
 
       (util/with-thread ::writer
         @(stream/stream-into-writer!
-          {:stream (stream/partition-anomalies output-stream protocol/render-message anomalies-stream)
+          {:stream (stream/partition-anomalies
+                    output-stream
+                    (fn [message]
+                      (log/trace "C<-S" message)
+                      (protocol/render-message message))
+                    anomalies-stream)
            :writer output-writer}))
 
       (util/with-thread ::message-reader
@@ -129,9 +134,8 @@
             (if (and (s/closed? input-byte-stream) (s/drained? input-byte-stream))
               (s/close! input-message-stream)
               (let [message (stream/read-message input-char-stream)]
-                (if (nom/anomaly? message)
-                  @(s/put! anomalies-stream message)
-                  @(s/put! input-message-stream message))
+                (log/trace "C->S" message)
+                @(s/put! input-message-stream message)
                 (recur))))))
 
       (run

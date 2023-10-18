@@ -46,7 +46,7 @@
         (server/run-io-wrapped
          {:input-reader (io/reader System/in)
           :output-writer (io/writer System/out)})]
-    (s/consume #(log/warn "Anomaly" %) anomalies-stream)
+    (s/consume #(log/error "Anomaly" %) anomalies-stream)
     (log/info "Server started in single session mode (multi session mode will come later)")
     @server-complete)
   (log/info "Server completed, will exit"))
