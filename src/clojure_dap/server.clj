@@ -112,21 +112,9 @@
          {:reader input-reader
           :stream input-byte-stream}))
 
-      ;; TODO Refactor this mapcat pattern into something reusable if it works.
-      ;; divert-on [f s]? Or should it be generic like a cond?
-      ;; So the fn gets to return the stream the message goes into.
       (util/with-thread ::writer
         @(stream/stream-into-writer!
-          {:stream (->> output-stream
-                        (s/mapcat
-                         (fn [message]
-                           (let [res (protocol/render-message message)]
-                             (if (nom/anomaly? res)
-                               (do
-                                 @(s/put! anomalies-stream res)
-                                 nil)
-                               [res])))))
-
+          {:stream (stream/partition-anomalies output-stream protocol/render-message anomalies-stream)
            :writer output-writer}))
 
       (util/with-thread ::message-reader
@@ -138,19 +126,14 @@
                    (log/warn "Weird input byte, can't turn it into a character:" x)))
                input-byte-stream)]
           (loop []
-            (if (s/closed? input-byte-stream)
+            (if (and (s/closed? input-byte-stream) (s/drained? input-byte-stream))
               (s/close! input-message-stream)
               (let [message (stream/read-message input-char-stream)]
-                @(s/put! input-message-stream message)
+                (if (nom/anomaly? message)
+                  @(s/put! anomalies-stream message)
+                  @(s/put! input-message-stream message))
                 (recur))))))
 
       (run
-       {:input-stream (s/mapcat
-                       (fn [res]
-                         (if (nom/anomaly? res)
-                           (do
-                             @(s/put! anomalies-stream res)
-                             nil)
-                           [res]))
-                       input-message-stream)
+       {:input-stream (stream/partition-anomalies input-message-stream identity anomalies-stream)
         :output-stream output-stream}))}))
