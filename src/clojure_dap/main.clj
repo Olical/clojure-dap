@@ -49,5 +49,4 @@
     (s/consume #(log/warn "Anomaly" %) anomalies-stream)
     (log/info "Server started in single session mode (multi session mode will come later)")
     @server-complete)
-
   (log/info "Server completed, will exit"))
