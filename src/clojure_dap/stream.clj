@@ -65,6 +65,7 @@
    (fn [value]
      (try
        (.write writer value)
+       (.flush writer)
        (catch java.io.IOException e
          (log/error e "Exception while writing into writer"))))
    stream))
