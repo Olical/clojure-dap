@@ -30,7 +30,7 @@
           (if (or (= header-buffer protocol/header-sep)
                   (str/ends-with? header-buffer protocol/double-header-sep))
             (nom/let-nom> [{:keys [Content-Length]} (protocol/parse-header header-buffer)]
-              (protocol/parse-message (str/join @(s/take! (s/batch Content-Length input-stream)))))
+              (protocol/parse-message (str/join (repeatedly Content-Length #(deref (s/take! input-stream))))))
             (recur header-buffer)))
         (nom/fail
          ::anom/incorrect
