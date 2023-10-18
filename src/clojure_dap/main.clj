@@ -50,4 +50,4 @@
     (log/info "Server started in single session mode (multi session mode will come later)")
     @server-complete)
 
-  nil)
+  (log/info "Server completed, will exit"))
