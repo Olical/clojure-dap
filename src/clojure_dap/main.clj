@@ -6,84 +6,9 @@
             [taoensso.timbre.appenders.core :as appenders]
             [malli.experimental :as mx]
             [malli.instrument :as mi]
-            [de.otto.nom.core :as nom]
             [malli.dev.pretty :as malli-pretty]
             [manifold.stream :as s]
-            [manifold.deferred :as d]
-            [clojure-dap.util :as util]
-            [clojure-dap.server :as server]
-            [clojure-dap.stream :as stream]
-            [clojure-dap.protocol :as protocol]))
-
-;; TODO Handle anomalies at all points. Needs more tests.
-;; TODO Move this somewhere out of main since it should basically just be CLI parsing and wiring.
-(mx/defn start-server-with-io
-  :- [:map
-      [:server-complete [:fn d/deferred?]]
-      [:anomalies-stream ::stream/stream]]
-  "Runs the server and plugs everything together with the provided reader and writer. Will handle encoding and decoding of messages into the JSON wire format.
-
-  Any anomalies from the client or the server are put into the anomalies-stream which is returned by this function.
-
-  A deferred that waits for all threads and streams to complete is also returned. You can wait on that with deref until everything has drained and completed."
-  [{:keys [input-reader output-writer]}
-   :- [:map
-       [:input-reader ::stream/reader]
-       [:output-writer ::stream/writer]]]
-
-  (let [input-byte-stream (s/stream)
-        input-message-stream (s/stream)
-        output-stream (s/stream)
-        anomalies-stream (s/stream)]
-
-    (s/on-closed output-stream #(s/close! anomalies-stream))
-
-    {:anomalies-stream anomalies-stream
-     :server-complete
-     (d/zip
-      (util/with-thread ::reader
-        (stream/reader-into-stream!
-         {:reader input-reader
-          :stream input-byte-stream}))
-
-      ;; TODO Refactor this mapcat pattern into something reusable if it works.
-      (util/with-thread ::writer
-        @(stream/stream-into-writer!
-          {:stream (->> output-stream
-                        (s/mapcat
-                         (fn [message]
-                           (let [res (protocol/render-message message)]
-                             (if (nom/anomaly? res)
-                               (do
-                                 @(s/put! anomalies-stream res)
-                                 nil)
-                               [res])))))
-
-           :writer output-writer}))
-
-      (util/with-thread ::message-reader
-        (let [input-char-stream (s/transform
-                                 (comp
-                                  (filter #(>= % 1))
-                                  (map char))
-                                 input-byte-stream)]
-          (loop []
-            (if (s/closed? input-byte-stream)
-              (s/close! input-message-stream)
-              (do
-                @(s/put! input-message-stream (stream/read-message input-char-stream))
-                (recur))))))
-
-      (server/run
-       {:input-stream (s/mapcat
-                       (fn [res]
-                         (if (nom/anomaly? res)
-                           (do
-                             @(s/put! anomalies-stream res)
-                             nil)
-                           [res]))
-                       input-message-stream)
-        :output-stream output-stream}))}))
+            [clojure-dap.server :as server]))
 
 (mx/defn run :- :nil
   "CLI entrypoint to the program, boots the system and handles any CLI args."
@@ -118,10 +43,10 @@
 
   (log/info "Starting server...")
   (let [{:keys [server-complete anomalies-stream]}
-        (start-server-with-io
+        (server/run-io-wrapped
          {:input-reader (io/reader System/in)
           :output-writer (io/writer System/out)})]
-    (s/map #(log/warn "Anomaly" %) anomalies-stream)
+    (s/consume #(log/warn "Anomaly" %) anomalies-stream)
     (log/info "Server started in single session mode (multi session mode will come later)")
     @server-complete)
 

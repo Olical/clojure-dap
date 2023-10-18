@@ -4,7 +4,10 @@
             [manifold.stream :as s]
             [manifold.deferred :as d]
             [malli.experimental :as mx]
-            [clojure-dap.protocol :as protocol]))
+            [de.otto.nom.core :as nom]
+            [clojure-dap.util :as util]
+            [clojure-dap.protocol :as protocol]
+            [clojure-dap.stream :as stream]))
 
 (mx/defn auto-seq :- [:function [:=> [:cat] :int]]
   "Returns a function that when called returns a sequence number one greater than the last time it was called. Starts at 1."
@@ -71,3 +74,75 @@
             (s/put-all! output-stream)))
 
      output-stream)))
+
+(mx/defn run-io-wrapped
+  :- [:map
+      [:server-complete [:fn d/deferred?]]
+      [:anomalies-stream ::stream/stream]]
+  "Runs the server and plugs everything together with the provided reader and writer. Will handle encoding and decoding of messages into the JSON wire format.
+
+  Any anomalies from the client or the server are put into the anomalies-stream which is returned by this function.
+
+  A deferred that waits for all threads and streams to complete is also returned. You can wait on that with deref until everything has drained and completed."
+  [{:keys [input-reader output-writer]}
+   :- [:map
+       [:input-reader ::stream/reader]
+       [:output-writer ::stream/writer]]]
+
+  (let [input-byte-stream (s/stream)
+        input-message-stream (s/stream)
+        output-stream (s/stream)
+        anomalies-stream (s/stream)]
+
+    (s/on-closed output-stream #(s/close! anomalies-stream))
+
+    {:anomalies-stream anomalies-stream
+     :server-complete
+     (d/zip
+      (util/with-thread ::reader
+        (stream/reader-into-stream!
+         {:reader input-reader
+          :stream input-byte-stream}))
+
+      ;; TODO Refactor this mapcat pattern into something reusable if it works.
+      ;; divert-on [f s]? Or should it be generic like a cond?
+      ;; So the fn gets to return the stream the message goes into.
+      (util/with-thread ::writer
+        @(stream/stream-into-writer!
+          {:stream (->> output-stream
+                        (s/mapcat
+                         (fn [message]
+                           (let [res (protocol/render-message message)]
+                             (if (nom/anomaly? res)
+                               (do
+                                 @(s/put! anomalies-stream res)
+                                 nil)
+                               [res])))))
+
+           :writer output-writer}))
+
+      (util/with-thread ::message-reader
+        (let [input-char-stream
+              (s/mapcat
+               (fn [x]
+                 (if (and (int? x) (>= x 0))
+                   [(char x)]
+                   (log/warn "Weird input byte, can't turn it into a character:" x)))
+               input-byte-stream)]
+          (loop []
+            (if (s/closed? input-byte-stream)
+              (s/close! input-message-stream)
+              (let [message (stream/read-message input-char-stream)]
+                @(s/put! input-message-stream message)
+                (recur))))))
+
+      (run
+       {:input-stream (s/mapcat
+                       (fn [res]
+                         (if (nom/anomaly? res)
+                           (do
+                             @(s/put! anomalies-stream res)
+                             nil)
+                           [res]))
+                       input-message-stream)
+        :output-stream output-stream}))}))
