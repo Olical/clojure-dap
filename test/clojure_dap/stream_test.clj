@@ -3,6 +3,7 @@
             [clojure.java.io :as io]
             [malli.core :as m]
             [matcher-combinators.test]
+            [de.otto.nom.core :as nom]
             [manifold.stream :as s]
             [clojure-dap.stream :as stream]
             [clojure-dap.protocol :as protocol]))
@@ -150,3 +151,24 @@
 
       (t/testing "but the stream is drained"
         (s/drained? stream)))))
+
+(t/deftest partition-anomalies
+  (t/testing "it puts anomalies onto the anomaly stream, yay"
+    (with-open [values (s/stream)
+                anomalies (s/stream)
+                good-values (stream/partition-anomalies values identity anomalies)]
+      (let [good-values! (atom [])
+            anomalies! (atom [])]
+        (s/consume #(swap! good-values! conj %) good-values)
+        (s/consume #(swap! anomalies! conj %) anomalies)
+        @(s/put! values "foo")
+        @(s/put! values "bar")
+        @(s/put! values (nom/fail :uhoh {:x 10}))
+        @(s/put! values "baz")
+        @(s/put! values (nom/fail :boom {:y 20}))
+        (s/close! values)
+        (t/is (= [[:de.otto.nom.core/anomaly :uhoh {:x 10}]
+                  [:de.otto.nom.core/anomaly :boom {:y 20}]]
+                 @anomalies!))
+        (t/is (= ["foo" "bar" "baz"]
+                 @good-values!))))))

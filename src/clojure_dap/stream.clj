@@ -43,7 +43,7 @@
    :- [:map
        [:reader ::reader]
        [:stream ::stream]]]
-  (when-not (s/closed? stream)
+  (when-not (and (s/closed? stream) (s/drained? stream))
     (let [value (try
                   (.read reader)
                   (catch java.io.IOException e
@@ -68,3 +68,18 @@
        (catch java.io.IOException e
          (log/error e "Exception while writing into writer"))))
    stream))
+
+(mx/defn partition-anomalies :- ::stream
+  "Filters anomalies that come out of applying f to each value of value-stream. Anomalies are fed into anomaly-stream and all other values are fed into the new returned stream."
+  [value-stream :- ::stream
+   f :- [:function [:=> [:cat :any] (schema/result :any)]]
+   anomaly-stream :- ::stream]
+  (s/mapcat
+   (fn [value]
+     (let [result (f value)]
+       (if (nom/anomaly? result)
+         (do
+           @(s/put! anomaly-stream result)
+           nil)
+         [result])))
+   value-stream))
