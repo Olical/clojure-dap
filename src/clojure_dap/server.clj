@@ -45,6 +45,14 @@
         :seq (next-seq)
         :request_seq req-seq
         :success true
+        :body {}}]
+
+      "disconnect"
+      [{:type "response"
+        :command "disconnect"
+        :seq (next-seq)
+        :request_seq req-seq
+        :success true
         :body {}}])))
 
 (mx/defn run :- [:fn d/deferred?]

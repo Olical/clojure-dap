@@ -27,6 +27,9 @@
     ::launch-request
     ::launch-response
 
+    ::disconnect-request
+    ::disconnect-response
+
     ::next-request
     ::next-response]))
 

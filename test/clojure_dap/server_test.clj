@@ -33,7 +33,7 @@
                 :command "initialize"
                 :arguments {:adapterID "12345"}}}))))
 
-  (t/testing "given a launch request, it responds with success (a noop)"
+  (t/testing "given a launch request, it responds with success (noop)"
     (t/is (= [{:command "launch"
                :request_seq 1
                :seq 1
@@ -46,7 +46,22 @@
                {:seq 1
                 :type "request"
                 :command "launch"
-                :arguments {}}})))))
+                :arguments {}}}))))
+
+  (t/testing "given a disconnect request, it responds with a success (noop)"
+    (t/is (= [{:command "disconnect"
+               :request_seq 1
+               :seq 1
+               :success true
+               :type "response"
+               :body {}}]
+             (server/handle-client-input
+              {:next-seq (server/auto-seq)
+               :input
+               {:arguments {:restart false, :terminateDebuggee true}
+                :command "disconnect"
+                :type "request"
+                :seq 1}})))))
 
 (t/deftest run
   (t/testing "multiple inputs generate multiple outputs"
