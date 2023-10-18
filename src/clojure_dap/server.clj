@@ -4,7 +4,6 @@
             [manifold.stream :as s]
             [manifold.deferred :as d]
             [malli.experimental :as mx]
-            [de.otto.nom.core :as nom]
             [clojure-dap.util :as util]
             [clojure-dap.protocol :as protocol]
             [clojure-dap.stream :as stream]))
