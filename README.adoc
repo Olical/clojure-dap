@@ -1,5 +1,7 @@
 = Clojure CIDER DAP server
 
+Will enable rich, interactive, debugging UIs in Neovim, VS Code and any other editor that supports DAP. See https://github.com/rcarriga/nvim-dap-ui[nvim-dap-ui] for an example.
+
 Coming "soon"! Until then, you can use the very basic https://github.com/Olical/conjure[Conjure] debugger support. It's not a great UI, but you can learn about it on https://github.com/Olical/conjure/wiki/Clojure-nREPL-CIDER-debugger[the Conjure wiki].
 
 Useful links for development:
