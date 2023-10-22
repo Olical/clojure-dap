@@ -6,7 +6,8 @@
             [malli.experimental :as mx]
             [clojure-dap.util :as util]
             [clojure-dap.protocol :as protocol]
-            [clojure-dap.stream :as stream]))
+            [clojure-dap.stream :as stream]
+            [clojure-dap.server.handler :as handler]))
 
 (mx/defn auto-seq :- [:function [:=> [:cat] :int]]
   "Returns a function that when called returns a sequence number one greater than the last time it was called. Starts at 1."
@@ -14,50 +15,6 @@
   (let [state (atom 0)]
     (fn []
       (swap! state inc))))
-
-(mx/defn handle-client-input :- [:sequential ::protocol/message]
-  "Takes a message from a DAP client and a next-seq function (always returns the next sequence number, maintains it's own state) and returns any required responses in a seq of some kind."
-  [{:keys [input next-seq]}
-   :- [:map
-       [:input ::protocol/message]
-       [:next-seq [:function [:=> [:cat] number?]]]]]
-  (let [req-seq (:seq input)]
-    (case (:command input)
-      "initialize"
-      [{:type "response"
-        :command "initialize"
-        :seq (next-seq)
-        :request_seq req-seq
-        :success true
-        :body {:supportsCancelRequest false
-               :supportsConfigurationDoneRequest true}}
-       {:type "event"
-        :event "initialized"
-        :seq (next-seq)}]
-
-      "launch"
-      [{:type "response"
-        :command "launch"
-        :seq (next-seq)
-        :request_seq req-seq
-        :success true
-        :body {}}]
-
-      "disconnect"
-      [{:type "response"
-        :command "disconnect"
-        :seq (next-seq)
-        :request_seq req-seq
-        :success true
-        :body {}}]
-
-      "configurationDone"
-      [{:type "response"
-        :command "configurationDone"
-        :seq (next-seq)
-        :request_seq req-seq
-        :success true
-        :body {}}])))
 
 (mx/defn run :- [:fn d/deferred?]
   "Consumes messages from the input stream and writes the respones to the output stream. We work with Clojure data structures at this level of abstraction, another system should handle the encoding and decoding of DAP messages.
@@ -72,7 +29,7 @@
      input-stream
      (fn [input]
        (->> (try
-              (handle-client-input
+              (handler/handle-client-input
                {:input input
                 :next-seq next-seq})
               (catch Throwable e
