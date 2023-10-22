@@ -30,10 +30,7 @@
         :request_seq req-seq
         :success true
         :body {:supportsCancelRequest false
-
-               ;; TODO Enable this one when we support it.
-               ;; It's called when the initialization is complete.
-               :supportsConfigurationDoneRequest false}}
+               :supportsConfigurationDoneRequest true}}
        {:type "event"
         :event "initialized"
         :seq (next-seq)}]
@@ -49,6 +46,14 @@
       "disconnect"
       [{:type "response"
         :command "disconnect"
+        :seq (next-seq)
+        :request_seq req-seq
+        :success true
+        :body {}}]
+
+      "configurationDone"
+      [{:type "response"
+        :command "configurationDone"
         :seq (next-seq)
         :request_seq req-seq
         :success true

@@ -15,10 +15,13 @@
       (t/is (= 2 (next-seq)))
       (t/is (= 3 (next-seq))))))
 
+(def initialised-response-body
+  {:supportsCancelRequest false
+   :supportsConfigurationDoneRequest true})
+
 (t/deftest handle-client-input
   (t/testing "given an initialize request, responds and emits the initialized event"
-    (t/is (= [{:body {:supportsCancelRequest false
-                      :supportsConfigurationDoneRequest false}
+    (t/is (= [{:body initialised-response-body
                :command "initialize"
                :request_seq 1
                :seq 1
@@ -81,8 +84,7 @@
       (server/run
        {:input-stream input-stream
         :output-stream output-stream})
-      (t/is (= [{:body {:supportsCancelRequest false
-                        :supportsConfigurationDoneRequest false}
+      (t/is (= [{:body initialised-response-body
                  :command "initialize"
                  :request_seq 1
                  :seq 1
@@ -174,8 +176,7 @@
                      :type "response"
                      :success true
                      :seq 1
-                     :body {:supportsConfigurationDoneRequest false
-                            :supportsCancelRequest false}}
+                     :body initialised-response-body}
                     {:type "event"
                      :event "initialized"
                      :seq 2}
@@ -217,8 +218,7 @@
                      :type "response"
                      :success true
                      :seq 1
-                     :body {:supportsConfigurationDoneRequest false
-                            :supportsCancelRequest false}}
+                     :body initialised-response-body}
                     {:type "event"
                      :event "initialized"
                      :seq 2}]))
