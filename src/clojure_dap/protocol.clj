@@ -27,7 +27,9 @@
    ::next-response
 
    ::configuration-done-request
-   ::configuration-done-response])
+   ::configuration-done-response
+
+   ::output-event])
 
 (schema/define! ::message
   (into
@@ -36,6 +38,10 @@
     (fn [k]
       (schema/define! k (schema/dap-json-schema->malli (csk/->PascalCaseKeyword (name k))))))
    supported-messages))
+
+(schema/define! ::next-seq-fn [:function [:=> [:cat] :int]])
+(schema/define! ::message-ish
+  [:map-of :keyword :any])
 
 (mx/defn parse-header :- (schema/result [:map-of :keyword :any])
   "Given a header string of the format 'Content-Length: 119\\n\\n' it returns a map containing the key value pairs."
@@ -82,7 +88,7 @@
 
 (mx/defn render-message :- (schema/result :string)
   "Takes a DAP message, validates it against the various possible schemas and then encodes it as a DAP JSON message with a header. This string can then be sent across the wire to the development tool."
-  [message :- [:maybe [:map-of :keyword :any]]]
+  [message :- ::message-ish]
   (nom/with-nom [(schema/validate ::message message)]
     (let [encoded (json/write-value-as-string (util/walk-sorted-map message))]
       (str (render-header {:Content-Length (count (.getBytes encoded))}) encoded))))

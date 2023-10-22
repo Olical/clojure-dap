@@ -1,5 +1,9 @@
 (ns clojure-dap.server.handler
-  (:require [malli.experimental :as mx]
+  "The pure handler functions called by clojure-dap.server that take in a DAP request and return a DAP response."
+  (:require [clojure.string :as str]
+            [malli.experimental :as mx]
+            [cognitect.anomalies :as anom]
+            [clojure-dap.schema :as schema]
             [clojure-dap.protocol :as protocol]))
 
 (def initialised-response-body
@@ -11,7 +15,7 @@
   [{:keys [input next-seq]}
    :- [:map
        [:input ::protocol/message]
-       [:next-seq [:function [:=> [:cat] number?]]]]]
+       [:next-seq ::protocol/next-seq-fn]]]
   (let [req-seq (:seq input)]
     (case (:command input)
       "initialize"
@@ -48,3 +52,22 @@
         :request_seq req-seq
         :success true
         :body {}}])))
+
+(mx/defn handle-anomalous-client-input :- [:sequential ::protocol/message]
+  "Takes some bad input that failed validation and turns it into some kind of error response."
+  [{:keys [anomaly next-seq]}
+   :- [:map
+       [:anomaly ::schema/anomaly]
+       [:next-seq ::protocol/next-seq-fn]]]
+  (let [[_nom-marker _anom-kind
+         {::anom/keys [message]
+          ::schema/keys [explanation humanized]}]
+        anomaly
+
+        {:keys [value]} explanation]
+    [{:type "event"
+      :event "output"
+      :seq (next-seq)
+      :body {:category "important"
+             :output (str message ": " (str/join ", " humanized))
+             :data value}}]))

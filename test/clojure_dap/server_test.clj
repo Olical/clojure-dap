@@ -3,11 +3,11 @@
             [clojure.java.io :as io]
             [clojure.string :as str]
             [matcher-combinators.test]
-            [matcher-combinators.matchers :as m]
             [manifold.stream :as s]
             [clojure-dap.server :as server]
             [clojure-dap.server.handler :as handler]
-            [clojure-dap.protocol :as protocol]))
+            [clojure-dap.protocol :as protocol]
+            [clojure-dap.schema :as schema]))
 
 (t/deftest auto-seq
   (t/testing "starts at 1 and auto increments"
@@ -52,12 +52,17 @@
   (t/testing "bad inputs or internal errors return errors to the client"
     (with-open [input-stream (s/stream 16)
                 output-stream (s/stream 16)]
-      (s/put!
+      (s/put-all!
        input-stream
-       {:seq 1
-        :type "request"
-        :command "initializor"
-        :arguments {:adapterID "12345"}})
+       [{:seq 1
+         :type "request"
+         :command "initializor"
+         :arguments {:adapterID "12345"}}
+        (schema/validate
+         ::protocol/message
+         {:seq 2
+          :type "event"
+          :event "unknown event!"})])
       (s/close! input-stream)
       (server/run
        {:input-stream input-stream
@@ -68,7 +73,16 @@
                :type "response"
                :command "initializor"
                :success false
-               :message #"Error while handling input"}]
+               :message #"Error while handling input"}
+              {:type "event"
+               :event "output"
+               :seq 2
+               :body
+               {:category "important"
+                :output #"Failed to validate against schema :clojure-dap.protocol/message: "
+                :data {:seq 2
+                       :type "event"
+                       :event "unknown event!"}}}]
              (vec (s/stream->seq output-stream))))))
 
   (t/testing "a closed output closes the input, output remains empty and input is drained"
@@ -139,7 +153,7 @@
                  (str output-writer)))
         (t/is (= [] @anomalies!)))))
 
-  (t/testing "bad messages from the client create an anomaly (we don't notify the client directly yet)"
+  (t/testing "bad or unknown messages from the client result in error output"
     (with-open [output-writer (java.io.StringWriter.)
                 input-reader (io/reader
                               (.getBytes
@@ -160,32 +174,7 @@
 
         @server-complete
 
-        (t/is (= (str/join
-                  (map
-                   protocol/render-message
-                   [{:request_seq 2
-                     :command "initialize"
-                     :type "response"
-                     :success true
-                     :seq 1
-                     :body handler/initialised-response-body}
-                    {:type "event"
-                     :event "initialized"
-                     :seq 2}]))
-                 (str output-writer)))
-        (t/is (match? [[:de.otto.nom.core/anomaly
-                        :cognitect.anomalies/incorrect
-                        {:clojure-dap.schema/explanation
-                         {:errors sequential?,
-                          :value {:arguments {:adapterID "12345"},
-                                  :command "someunknowncommand",
-                                  :seq 1,
-                                  :type "request"}},
-                         :clojure-dap.schema/humanized
-                         (m/prefix
-                          ["JSON Validation error: #/command: someunknowncommand is not a valid enum value"
-                           "3 JSON Validation errors: #: required key [request_seq] not found, #: required key [success] not found, #/type: request is not a valid enum value"
-                           "3 JSON Validation errors: #: required key [event] not found, #: required key [event] not found, #/type: request is not a valid enum value"])
-
-                         :cognitect.anomalies/message "Failed to validate against schema :clojure-dap.protocol/message"}]]
-                      @anomalies!))))))
+        (t/is (re-find
+               #"(?s)Failed to validate against schema :clojure-dap.protocol/message.*\"command\":\"initialize\".*\"event\":\"initialized\""
+               (str output-writer)))
+        (t/is (= [] @anomalies!))))))

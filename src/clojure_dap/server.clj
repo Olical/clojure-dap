@@ -4,12 +4,13 @@
             [manifold.stream :as s]
             [manifold.deferred :as d]
             [malli.experimental :as mx]
+            [de.otto.nom.core :as nom]
             [clojure-dap.util :as util]
             [clojure-dap.protocol :as protocol]
             [clojure-dap.stream :as stream]
             [clojure-dap.server.handler :as handler]))
 
-(mx/defn auto-seq :- [:function [:=> [:cat] :int]]
+(mx/defn auto-seq :- ::protocol/next-seq-fn
   "Returns a function that when called returns a sequence number one greater than the last time it was called. Starts at 1."
   []
   (let [state (atom 0)]
@@ -29,9 +30,13 @@
      input-stream
      (fn [input]
        (->> (try
-              (handler/handle-client-input
-               {:input input
-                :next-seq next-seq})
+              (if (nom/anomaly? input)
+                (handler/handle-anomalous-client-input
+                 {:anomaly input
+                  :next-seq next-seq})
+                (handler/handle-client-input
+                 {:input input
+                  :next-seq next-seq}))
               (catch Throwable e
                 (log/error e "Failed to handle client input")
                 [{:seq (next-seq)
@@ -100,5 +105,5 @@
                 (recur))))))
 
       (run
-       {:input-stream (stream/partition-anomalies input-message-stream identity anomalies-stream)
+       {:input-stream input-message-stream
         :output-stream output-stream}))}))

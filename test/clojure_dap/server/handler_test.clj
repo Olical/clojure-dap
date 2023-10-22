@@ -1,6 +1,8 @@
 (ns clojure-dap.server.handler-test
   (:require [clojure.test :as t]
             [matcher-combinators.test]
+            [clojure-dap.schema :as schema]
+            [clojure-dap.protocol :as protocol]
             [clojure-dap.server :as server]
             [clojure-dap.server.handler :as handler]))
 
@@ -72,3 +74,22 @@
                 :command "configurationDone"
                 :type "request"
                 :seq 1}})))))
+
+(t/deftest handle-anomalous-client-input
+  (t/testing "given an anomaly it returns an output event containing an explanation"
+    (t/is (match?
+           [{:event "output",
+             :seq 1,
+             :type "event",
+             :body {:category "important"
+                    :data {:event "some unknown event"
+                           :foo true
+                           :type "event"}
+                    :output #"^Failed to validate against schema :clojure-dap.protocol/message: \d+ JSON Validation errors: #: required key \[seq\] not found, "}}]
+           (handler/handle-anomalous-client-input
+            {:anomaly (schema/validate
+                       ::protocol/message
+                       {:type "event"
+                        :event "some unknown event"
+                        :foo true})
+             :next-seq (server/auto-seq)})))))
