@@ -12,7 +12,7 @@
       (t/is (= 3 (next-seq))))))
 
 (t/deftest handle-client-input
-  (t/testing "given an initialize request, responds and emits the initialized event"
+  (t/testing "initialize request"
     (t/is (= [{:body handler/initialised-response-body
                :command "initialize"
                :request_seq 1
@@ -28,7 +28,7 @@
                 :command "initialize"
                 :arguments {:adapterID "12345"}}}))))
 
-  (t/testing "given a launch request, it responds with success (noop)"
+  (t/testing "launch request"
     (t/is (= [{:command "launch"
                :request_seq 1
                :seq 1
@@ -43,7 +43,7 @@
                 :command "launch"
                 :arguments {}}}))))
 
-  (t/testing "given a disconnect request, it responds with a success (noop)"
+  (t/testing "disconnect request"
     (t/is (= [{:command "disconnect"
                :request_seq 1
                :seq 1
@@ -55,5 +55,20 @@
                :input
                {:arguments {:restart false, :terminateDebuggee true}
                 :command "disconnect"
+                :type "request"
+                :seq 1}}))))
+
+  (t/testing "configurationDone request"
+    (t/is (= [{:command "configurationDone"
+               :request_seq 1
+               :seq 1
+               :success true
+               :type "response"
+               :body {}}]
+             (handler/handle-client-input
+              {:next-seq (server/auto-seq)
+               :input
+               {:arguments {}
+                :command "configurationDone"
                 :type "request"
                 :seq 1}})))))
