@@ -12,26 +12,30 @@
 (def header-sep "\r\n")
 (def double-header-sep (str header-sep header-sep))
 
+(def supported-messages
+  [::initialize-request
+   ::initialize-response
+   ::initialized-event
+
+   ::launch-request
+   ::launch-response
+
+   ::disconnect-request
+   ::disconnect-response
+
+   ::next-request
+   ::next-response
+
+   ::configuration-done-request
+   ::configuration-done-response])
+
 (schema/define! ::message
   (into
    [:or]
-
    (map
     (fn [k]
       (schema/define! k (schema/dap-json-schema->malli (csk/->PascalCaseKeyword (name k))))))
-
-   [::initialize-request
-    ::initialize-response
-    ::initialized-event
-
-    ::launch-request
-    ::launch-response
-
-    ::disconnect-request
-    ::disconnect-response
-
-    ::next-request
-    ::next-response]))
+   supported-messages))
 
 (mx/defn parse-header :- (schema/result [:map-of :keyword :any])
   "Given a header string of the format 'Content-Length: 119\\n\\n' it returns a map containing the key value pairs."
