@@ -4,7 +4,6 @@
   org.clojure/core.match {:mvn/version "1.0.1"}
   manifold/manifold {:mvn/version "0.4.1"}
   me.raynes/fs {:mvn/version "1.4.6"}
-  mount/mount {:mvn/version "0.1.17"}
   nrepl/nrepl {:mvn/version "1.0.0"}
   metosin/jsonista {:mvn/version "0.3.7"}
   camel-snake-kebab/camel-snake-kebab {:mvn/version "0.4.3"}
@@ -27,7 +26,6 @@
                       nubank/matcher-combinators {:mvn/version "3.8.8"}}
          :main-opts ["-m" "kaocha.runner"]}
   :repl {:extra-deps {cider/cider-nrepl {:mvn/version "0.37.0"}
-                      djblue/portal {:mvn/version "0.46.0"}
                       com.bhauman/rebel-readline {:mvn/version "0.1.4"}}}
   :outdated {:deps {com.github.liquidz/antq {:mvn/version "2.5.1109"}}
              :main-opts ["-m" "antq.core"]}
