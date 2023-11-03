@@ -35,7 +35,8 @@
 ;; Used by other parts of the system like clojure-dap.debuggee.
 ;; These are each defined under their own key in the registry.
 (def misc-definitions
-  [::set-breakpoints-arguments
+  [::initialize-request-arguments
+   ::set-breakpoints-arguments
    ::evaluate-arguments])
 
 (schema/define! ::message

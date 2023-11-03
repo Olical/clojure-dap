@@ -6,23 +6,24 @@
 
 (schema/define! ::this
   [:map
-   [:init [:fn fn?]]
+   [:initialize [:fn fn?]]
    [:set-breakpoints [:fn fn?]]
    [:evaluate [:fn fn?]]])
 
-(schema/define! ::messages
+(schema/define! ::messages-result
   (schema/result [:vector ::protocol/message]))
 
-(mx/defn init :- ::messages
-  [this :- ::this]
-  ((:init this) this))
+(mx/defn initialize :- ::messages-result
+  [this :- ::this
+   arguments :- ::protocol/initialize-request-arguments]
+  ((:initialize this) this arguments))
 
-(mx/defn set-breakpoints :- ::messages
+(mx/defn set-breakpoints :- ::messages-result
   [this :- ::this
    arguments :- ::protocol/set-breakpoints-arguments]
   ((:set-breakpoints this) this arguments))
 
-(mx/defn evaluate :- ::messages
+(mx/defn evaluate :- ::messages-result
   [this :- ::this
    arguments :- ::protocol/evaluate-arguments]
   ((:evaluate this) this arguments))

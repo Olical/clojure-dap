@@ -4,19 +4,21 @@
             [clojure-dap.debuggee :as debuggee]
             [clojure-dap.debuggee.fake :as fake-debuggee]))
 
-(t/deftest init
+(t/deftest initialize
   (t/testing "returns messages"
-    (let [{:keys [init] :as debuggee} (fake-debuggee/create)]
-      (debuggee/init debuggee)
-      (t/is (= (list (list debuggee))
-               (spy/calls init))))))
+    (let [{:keys [initialize] :as this} (fake-debuggee/create)
+          arguments {:clientID "test suite"
+                     :adapterID "clojure-dap"}]
+      (debuggee/initialize this arguments)
+      (t/is (= (list (list this arguments))
+               (spy/calls initialize))))))
 
 (t/deftest set-breakpoints
   (t/testing "returns messages"
-    (let [{:keys [set-breakpoints] :as debuggee} (fake-debuggee/create)
+    (let [{:keys [set-breakpoints] :as this} (fake-debuggee/create)
           arguments {:source {:path "foo.clj"}}]
-      (debuggee/set-breakpoints debuggee arguments)
-      (t/is (= (list (list debuggee arguments))
+      (debuggee/set-breakpoints this arguments)
+      (t/is (= (list (list this arguments))
                (spy/calls set-breakpoints))))))
 
 (t/deftest evaluate
