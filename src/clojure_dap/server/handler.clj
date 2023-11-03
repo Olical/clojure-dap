@@ -3,6 +3,7 @@
   (:require [clojure.string :as str]
             [malli.experimental :as mx]
             [cognitect.anomalies :as anom]
+            [de.otto.nom.core :as nom]
             [clojure-dap.schema :as schema]
             [clojure-dap.protocol :as protocol]
             [clojure-dap.debuggee :as debuggee]))
@@ -60,10 +61,9 @@
    :- [:map
        [:anomaly ::schema/anomaly]
        [:next-seq ::protocol/next-seq-fn]]]
-  (let [[_nom-marker _anom-kind
-         {::anom/keys [message]
-          ::schema/keys [explanation humanized]}]
-        anomaly
+  (let [{::anom/keys [message]
+         ::schema/keys [explanation humanized]}
+        (nom/payload anomaly)
 
         {:keys [value]} explanation]
     [{:type "event"
