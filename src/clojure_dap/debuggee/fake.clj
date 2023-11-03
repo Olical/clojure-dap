@@ -1,24 +1,15 @@
 (ns clojure-dap.debuggee.fake
   "A fake debuggee used for development and testing. All of it's methods have spy wrappers for testing."
-  (:require [spy.core :as spy]
-            [malli.experimental :as mx]
-            [clojure-dap.protocol :as protocol]
-            [clojure-dap.debuggee :as debuggee]))
+  (:require [spy.core :as spy]))
 
-(mx/defn initialize :- ::debuggee/messages-result
-  [this :- ::debuggee/this
-   arguments :- ::protocol/initialize-request-arguments]
-  [])
+(defn initialize [this opts]
+  nil)
 
-(mx/defn set-breakpoints :- ::debuggee/messages-result
-  [this :- ::debuggee/this
-   arguments :- ::protocol/set-breakpoints-arguments]
-  [])
+(defn set-breakpoints [this opts]
+  nil)
 
-(mx/defn evaluate  :- ::debuggee/messages-result
-  [this :- ::debuggee/this
-   arguments :- ::protocol/evaluate-arguments]
-  [])
+(defn evaluate [this opts]
+  nil)
 
 (defn create []
   {:initialize (spy/spy #'initialize)

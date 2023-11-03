@@ -5,26 +5,22 @@
             [clojure-dap.debuggee.fake :as fake-debuggee]))
 
 (t/deftest initialize
-  (t/testing "returns messages"
-    (let [{:keys [initialize] :as this} (fake-debuggee/create)
-          arguments {:clientID "test suite"
-                     :adapterID "clojure-dap"}]
-      (debuggee/initialize this arguments)
-      (t/is (= (list (list this arguments))
-               (spy/calls initialize))))))
+  (let [{:keys [initialize] :as debuggee} (fake-debuggee/create)
+        opts {}]
+    (t/is (nil? (debuggee/initialize debuggee opts)))
+    (t/is (= (list (list debuggee opts))
+             (spy/calls initialize)))))
 
 (t/deftest set-breakpoints
-  (t/testing "returns messages"
-    (let [{:keys [set-breakpoints] :as this} (fake-debuggee/create)
-          arguments {:source {:path "foo.clj"}}]
-      (debuggee/set-breakpoints this arguments)
-      (t/is (= (list (list this arguments))
-               (spy/calls set-breakpoints))))))
+  (let [{:keys [set-breakpoints] :as debuggee} (fake-debuggee/create)
+        opts {}]
+    (t/is (nil? (debuggee/set-breakpoints debuggee opts)))
+    (t/is (= (list (list debuggee opts))
+             (spy/calls set-breakpoints)))))
 
 (t/deftest evaluate
-  (t/testing "returns messages"
-    (let [{:keys [evaluate] :as debuggee} (fake-debuggee/create)
-          arguments {:expression "(+ 1 2)"}]
-      (debuggee/evaluate debuggee arguments)
-      (t/is (= (list (list debuggee arguments))
-               (spy/calls evaluate))))))
+  (let [{:keys [evaluate] :as debuggee} (fake-debuggee/create)
+        opts {}]
+    (t/is (nil? (debuggee/evaluate debuggee opts)))
+    (t/is (= (list (list debuggee opts))
+             (spy/calls evaluate)))))
