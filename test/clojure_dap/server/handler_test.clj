@@ -5,6 +5,7 @@
             [clojure-dap.protocol :as protocol]
             [clojure-dap.server :as server]
             [clojure-dap.server.handler :as handler]
+            [clojure-dap.debuggee :as debuggee]
             [clojure-dap.debuggee.fake :as fake-debuggee]))
 
 (t/deftest auto-seq
@@ -25,7 +26,7 @@
               {:event "initialized", :seq 2, :type "event"}]
              (handler/handle-client-input
               {:next-seq (server/auto-seq)
-               :debuggee (fake-debuggee/create)
+               :debuggee! (atom nil)
                :input
                {:seq 1
                 :type "request"
@@ -33,20 +34,22 @@
                 :arguments {:adapterID "12345"}}}))))
 
   (t/testing "attach request"
-    (t/is (= [{:command "attach"
-               :request_seq 1
-               :seq 1
-               :success true
-               :type "response"
-               :body {}}]
-             (handler/handle-client-input
-              {:next-seq (server/auto-seq)
-               :debuggee (fake-debuggee/create)
-               :input
-               {:seq 1
-                :type "request"
-                :command "attach"
-                :arguments {}}}))))
+    (let [debuggee! (atom nil)]
+      (t/is (= [{:command "attach"
+                 :request_seq 1
+                 :seq 1
+                 :success true
+                 :type "response"
+                 :body {}}]
+               (handler/handle-client-input
+                {:next-seq (server/auto-seq)
+                 :debuggee! debuggee!
+                 :input
+                 {:seq 1
+                  :type "request"
+                  :command "attach"
+                  :arguments {:type "fake"}}})))
+      (t/is (nil? (schema/validate ::debuggee/debuggee @debuggee!)))))
 
   (t/testing "disconnect request"
     (t/is (= [{:command "disconnect"
@@ -57,7 +60,7 @@
                :body {}}]
              (handler/handle-client-input
               {:next-seq (server/auto-seq)
-               :debuggee (fake-debuggee/create)
+               :debuggee! (atom (fake-debuggee/create))
                :input
                {:arguments {:restart false, :terminateDebuggee true}
                 :command "disconnect"
@@ -73,7 +76,7 @@
                :body {}}]
              (handler/handle-client-input
               {:next-seq (server/auto-seq)
-               :debuggee (fake-debuggee/create)
+               :debuggee! (atom (fake-debuggee/create))
                :input
                {:arguments {}
                 :command "configurationDone"

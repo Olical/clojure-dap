@@ -14,7 +14,7 @@
 
 (mx/defn handle-client-input :- [:sequential ::protocol/message]
   "Takes a message from a DAP client and a next-seq function (always returns the next sequence number, maintains it's own state) and returns any required responses in a seq of some kind."
-  [{:keys [input next-seq debuggee]}
+  [{:keys [input next-seq debuggee!]}
    :- [:map
        [:input ::protocol/message]
        [:next-seq ::protocol/next-seq-fn]]]
@@ -32,12 +32,14 @@
         :seq (next-seq)}]
 
       "attach"
-      [{:type "response"
-        :command "attach"
-        :seq (next-seq)
-        :request_seq req-seq
-        :success true
-        :body {}}]
+      (do
+        (reset! debuggee! (debuggee/create (:arguments input)))
+        [{:type "response"
+          :command "attach"
+          :seq (next-seq)
+          :request_seq req-seq
+          :success true
+          :body {}}])
 
       "disconnect"
       [{:type "response"

@@ -1,7 +1,8 @@
 (ns clojure-dap.debuggee
   "Interface for talking to a debuggee through some debugger tooling. Geared towards nREPL / CIDER's debug suite for now but should be able to support Flow-storm at some point."
   (:require [malli.experimental :as mx]
-            [clojure-dap.schema :as schema]))
+            [clojure-dap.schema :as schema]
+            [clojure-dap.debuggee.fake :as fake-debuggee]))
 
 (schema/define! ::debuggee
   [:map
@@ -17,3 +18,8 @@
   [this :- ::debuggee
    opts :- [:map]]
   ((:evaluate this) this opts))
+
+(mx/defn create :- ::debuggee
+  [opts :- [:map [:type [:enum "fake"]]]]
+  (case (:type opts)
+    "fake" (fake-debuggee/create)))
