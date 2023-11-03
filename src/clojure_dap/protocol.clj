@@ -12,6 +12,7 @@
 (def header-sep "\r\n")
 (def double-header-sep (str header-sep header-sep))
 
+;; These are combined with an [:or ...] to build the ::message schema.
 (def supported-messages
   [::initialize-request
    ::initialize-response
@@ -31,13 +32,26 @@
 
    ::output-event])
 
+;; Used by other parts of the system like clojure-dap.debuggee.
+;; These are each defined under their own key in the registry.
+(def misc-definitions
+  [::set-breakpoints-arguments
+   ::evaluate-arguments])
+
 (schema/define! ::message
   (into
    [:or]
    (map
     (fn [k]
-      (schema/define! k (schema/dap-json-schema->malli (csk/->PascalCaseKeyword (name k))))))
+      (schema/define! k
+        (schema/dap-json-schema->malli (csk/->PascalCaseKeyword k)))))
    supported-messages))
+
+(run!
+ (fn [k]
+   (schema/define! k
+     (schema/dap-json-schema->malli (csk/->PascalCaseKeyword k))))
+ misc-definitions)
 
 (schema/define! ::next-seq-fn [:function [:=> [:cat] :int]])
 (schema/define! ::message-ish
