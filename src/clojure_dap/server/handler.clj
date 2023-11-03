@@ -4,7 +4,8 @@
             [malli.experimental :as mx]
             [cognitect.anomalies :as anom]
             [clojure-dap.schema :as schema]
-            [clojure-dap.protocol :as protocol]))
+            [clojure-dap.protocol :as protocol]
+            [clojure-dap.debuggee :as debuggee]))
 
 (def initialised-response-body
   {:supportsCancelRequest false
@@ -12,7 +13,7 @@
 
 (mx/defn handle-client-input :- [:sequential ::protocol/message]
   "Takes a message from a DAP client and a next-seq function (always returns the next sequence number, maintains it's own state) and returns any required responses in a seq of some kind."
-  [{:keys [input next-seq]}
+  [{:keys [input next-seq debuggee]}
    :- [:map
        [:input ::protocol/message]
        [:next-seq ::protocol/next-seq-fn]]]

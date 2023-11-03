@@ -8,7 +8,8 @@
             [clojure-dap.util :as util]
             [clojure-dap.protocol :as protocol]
             [clojure-dap.stream :as stream]
-            [clojure-dap.server.handler :as handler]))
+            [clojure-dap.server.handler :as handler]
+            [clojure-dap.debuggee :as debuggee]))
 
 (mx/defn auto-seq :- ::protocol/next-seq-fn
   "Returns a function that when called returns a sequence number one greater than the last time it was called. Starts at 1."
@@ -21,10 +22,11 @@
   "Consumes messages from the input stream and writes the respones to the output stream. We work with Clojure data structures at this level of abstraction, another system should handle the encoding and decoding of DAP messages.
 
   Errors that occur in handle-client-input are fed into the output-stream as errors."
-  [{:keys [input-stream output-stream]}
+  [{:keys [input-stream output-stream debuggee]}
    :- [:map
        [:input-stream [:fn s/stream?]]
-       [:output-stream [:fn s/stream?]]]]
+       [:output-stream [:fn s/stream?]]
+       [:debuggee ::debuggee/debuggee]]]
   (let [next-seq (auto-seq)]
     (s/connect-via
      input-stream
@@ -36,6 +38,7 @@
                   :next-seq next-seq})
                 (handler/handle-client-input
                  {:input input
+                  :debuggee debuggee
                   :next-seq next-seq}))
               (catch Throwable e
                 (log/error e "Failed to handle client input")
@@ -58,10 +61,11 @@
   Any anomalies from the client or the server are put into the anomalies-stream which is returned by this function.
 
   A deferred that waits for all threads and streams to complete is also returned. You can wait on that with deref until everything has drained and completed."
-  [{:keys [input-reader output-writer]}
+  [{:keys [input-reader output-writer debuggee]}
    :- [:map
        [:input-reader ::stream/reader]
-       [:output-writer ::stream/writer]]]
+       [:output-writer ::stream/writer]
+       [:debuggee ::debuggee/debuggee]]]
 
   (let [input-byte-stream (s/stream)
         input-message-stream (s/stream)
@@ -106,4 +110,5 @@
 
       (run
        {:input-stream input-message-stream
-        :output-stream output-stream}))}))
+        :output-stream output-stream
+        :debuggee debuggee}))}))

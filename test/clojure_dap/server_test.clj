@@ -7,7 +7,8 @@
             [clojure-dap.server :as server]
             [clojure-dap.server.handler :as handler]
             [clojure-dap.protocol :as protocol]
-            [clojure-dap.schema :as schema]))
+            [clojure-dap.schema :as schema]
+            [clojure-dap.debuggee.fake :as fake-debuggee]))
 
 (t/deftest auto-seq
   (t/testing "starts at 1 and auto increments"
@@ -33,7 +34,8 @@
       (s/close! input-stream)
       (server/run
        {:input-stream input-stream
-        :output-stream output-stream})
+        :output-stream output-stream
+        :debuggee (fake-debuggee/create)})
       (t/is (= [{:body handler/initialised-response-body
                  :command "initialize"
                  :request_seq 1
@@ -66,7 +68,8 @@
       (s/close! input-stream)
       (server/run
        {:input-stream input-stream
-        :output-stream output-stream})
+        :output-stream output-stream
+        :debuggee (fake-debuggee/create)})
       (t/is (match?
              [{:seq 1
                :request_seq 1
@@ -101,7 +104,8 @@
       (s/close! output-stream)
       (server/run
        {:input-stream input-stream
-        :output-stream output-stream})
+        :output-stream output-stream
+        :debuggee (fake-debuggee/create)})
       (t/is (s/closed? input-stream))
       (t/is (s/drained? input-stream))
       (t/is (= [] (vec (s/stream->seq output-stream)))))))
@@ -126,7 +130,8 @@
             {:keys [server-complete anomalies-stream]}
             (server/run-io-wrapped
              {:input-reader input-reader
-              :output-writer output-writer})]
+              :output-writer output-writer
+              :debuggee (fake-debuggee/create)})]
 
         (s/consume #(swap! anomalies! conj %) anomalies-stream)
 
@@ -168,7 +173,8 @@
             {:keys [server-complete anomalies-stream]}
             (server/run-io-wrapped
              {:input-reader input-reader
-              :output-writer output-writer})]
+              :output-writer output-writer
+              :debuggee (fake-debuggee/create)})]
 
         (s/consume #(swap! anomalies! conj %) anomalies-stream)
 

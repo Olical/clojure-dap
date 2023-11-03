@@ -4,7 +4,8 @@
             [clojure-dap.schema :as schema]
             [clojure-dap.protocol :as protocol]
             [clojure-dap.server :as server]
-            [clojure-dap.server.handler :as handler]))
+            [clojure-dap.server.handler :as handler]
+            [clojure-dap.debuggee.fake :as fake-debuggee]))
 
 (t/deftest auto-seq
   (t/testing "starts at 1 and auto increments"
@@ -24,6 +25,7 @@
               {:event "initialized", :seq 2, :type "event"}]
              (handler/handle-client-input
               {:next-seq (server/auto-seq)
+               :debuggee (fake-debuggee/create)
                :input
                {:seq 1
                 :type "request"
@@ -39,6 +41,7 @@
                :body {}}]
              (handler/handle-client-input
               {:next-seq (server/auto-seq)
+               :debuggee (fake-debuggee/create)
                :input
                {:seq 1
                 :type "request"
@@ -54,6 +57,7 @@
                :body {}}]
              (handler/handle-client-input
               {:next-seq (server/auto-seq)
+               :debuggee (fake-debuggee/create)
                :input
                {:arguments {:restart false, :terminateDebuggee true}
                 :command "disconnect"
@@ -69,6 +73,7 @@
                :body {}}]
              (handler/handle-client-input
               {:next-seq (server/auto-seq)
+               :debuggee (fake-debuggee/create)
                :input
                {:arguments {}
                 :command "configurationDone"

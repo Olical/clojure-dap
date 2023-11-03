@@ -8,7 +8,8 @@
             [malli.instrument :as mi]
             [malli.dev.pretty :as malli-pretty]
             [manifold.stream :as s]
-            [clojure-dap.server :as server]))
+            [clojure-dap.server :as server]
+            [clojure-dap.debuggee.fake :as fake-debuggee]))
 
 (mx/defn run :- :nil
   "CLI entrypoint to the program, boots the system and handles any CLI args."
@@ -45,7 +46,8 @@
   (let [{:keys [server-complete anomalies-stream]}
         (server/run-io-wrapped
          {:input-reader (io/reader System/in)
-          :output-writer (io/writer System/out)})]
+          :output-writer (io/writer System/out)
+          :debuggee (fake-debuggee/create)})]
     (s/consume #(log/error "Anomaly" %) anomalies-stream)
     (log/info "Server started in single session mode (multi session mode will come later)")
     @server-complete)
