@@ -17,8 +17,8 @@
    ::initialize-response
    ::initialized-event
 
-   ::launch-request
-   ::launch-response
+   ::attach-request
+   ::attach-response
 
    ::disconnect-request
    ::disconnect-response

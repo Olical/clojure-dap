@@ -29,7 +29,7 @@
          :arguments {:adapterID "12345"}}
         {:seq 2
          :type "request"
-         :command "launch"
+         :command "attach"
          :arguments {}}])
       (s/close! input-stream)
       (server/run
@@ -44,7 +44,7 @@
                  :type "response"}
                 {:event "initialized", :seq 2, :type "event"}
                 {:body {}
-                 :command "launch"
+                 :command "attach"
                  :request_seq 2
                  :seq 3
                  :success true
@@ -99,7 +99,7 @@
          :arguments {:adapterID "12345"}}
         {:seq 2
          :type "request"
-         :command "launch"
+         :command "attach"
          :arguments {}}])
       (s/close! output-stream)
       (server/run
@@ -124,7 +124,7 @@
                                 (protocol/render-message
                                  {:seq 2
                                   :type "request"
-                                  :command "launch"
+                                  :command "attach"
                                   :arguments {:adapterID "12345"}}))))]
       (let [anomalies! (atom [])
             {:keys [server-complete anomalies-stream]}
@@ -150,7 +150,7 @@
                      :event "initialized"
                      :seq 2}
                     {:request_seq 2
-                     :command "launch"
+                     :command "attach"
                      :type "response"
                      :success true
                      :seq 3

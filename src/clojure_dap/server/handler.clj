@@ -31,9 +31,9 @@
         :event "initialized"
         :seq (next-seq)}]
 
-      "launch"
+      "attach"
       [{:type "response"
-        :command "launch"
+        :command "attach"
         :seq (next-seq)
         :request_seq req-seq
         :success true

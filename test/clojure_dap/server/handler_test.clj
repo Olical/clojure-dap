@@ -32,8 +32,8 @@
                 :command "initialize"
                 :arguments {:adapterID "12345"}}}))))
 
-  (t/testing "launch request"
-    (t/is (= [{:command "launch"
+  (t/testing "attach request"
+    (t/is (= [{:command "attach"
                :request_seq 1
                :seq 1
                :success true
@@ -45,7 +45,7 @@
                :input
                {:seq 1
                 :type "request"
-                :command "launch"
+                :command "attach"
                 :arguments {}}}))))
 
   (t/testing "disconnect request"

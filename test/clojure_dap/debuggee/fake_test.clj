@@ -4,13 +4,6 @@
             [clojure-dap.debuggee :as debuggee]
             [clojure-dap.debuggee.fake :as fake-debuggee]))
 
-(t/deftest initialize
-  (let [{:keys [initialize] :as debuggee} (fake-debuggee/create)
-        opts {}]
-    (t/is (nil? (debuggee/initialize debuggee opts)))
-    (t/is (= (list (list debuggee opts))
-             (spy/calls initialize)))))
-
 (t/deftest set-breakpoints
   (let [{:keys [set-breakpoints] :as debuggee} (fake-debuggee/create)
         opts {}]

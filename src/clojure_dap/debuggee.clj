@@ -5,14 +5,8 @@
 
 (schema/define! ::debuggee
   [:map
-   [:initialize [:fn fn?]]
    [:set-breakpoints [:fn fn?]]
    [:evaluate [:fn fn?]]])
-
-(mx/defn initialize :- (schema/result :nil)
-  [this :- ::debuggee
-   opts :- [:map]]
-  ((:initialize this) this opts))
 
 (mx/defn set-breakpoints :- (schema/result :nil)
   [this :- ::debuggee
