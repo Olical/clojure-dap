@@ -4,22 +4,25 @@
             [clojure-dap.schema :as schema]
             [clojure-dap.protocol :as protocol]))
 
-(schema/define! ::debuggee
+(schema/define! ::this
   [:map
    [:init [:fn fn?]]
    [:set-breakpoints [:fn fn?]]
    [:evaluate [:fn fn?]]])
 
-(mx/defn init :- (schema/result [:vector ::protocol/message])
-  [this :- ::debuggee]
+(schema/define! ::messages
+  (schema/result [:vector ::protocol/message]))
+
+(mx/defn init :- ::messages
+  [this :- ::this]
   ((:init this) this))
 
-(mx/defn set-breakpoints :- (schema/result [:vector ::protocol/message])
-  [this :- ::debuggee
+(mx/defn set-breakpoints :- ::messages
+  [this :- ::this
    arguments :- ::protocol/set-breakpoints-arguments]
   ((:set-breakpoints this) this arguments))
 
-(mx/defn evaluate :- (schema/result [:vector ::protocol/message])
-  [this :- ::debuggee
+(mx/defn evaluate :- ::messages
+  [this :- ::this
    arguments :- ::protocol/evaluate-arguments]
   ((:evaluate this) this arguments))
