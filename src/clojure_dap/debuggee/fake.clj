@@ -21,6 +21,6 @@
   [])
 
 (defn create []
-  {:init (spy/spy init)
-   :set-breakpoints (spy/spy set-breakpoints)
-   :evaluate (spy/spy evaluate)})
+  {:init (spy/spy #'init)
+   :set-breakpoints (spy/spy #'set-breakpoints)
+   :evaluate (spy/spy #'evaluate)})
