@@ -34,22 +34,42 @@
                 :arguments {:adapterID "12345"}}}))))
 
   (t/testing "attach request"
-    (let [debuggee! (atom nil)]
-      (t/is (= [{:command "attach"
-                 :request_seq 1
-                 :seq 1
-                 :success true
-                 :type "response"
-                 :body {}}]
-               (handler/handle-client-input
-                {:next-seq (server/auto-seq)
-                 :debuggee! debuggee!
-                 :input
-                 {:seq 1
-                  :type "request"
-                  :command "attach"
-                  :arguments {:clojure_dap {:type "fake"}}}})))
-      (t/is (nil? (schema/validate ::debuggee/debuggee @debuggee!)))))
+    (t/testing "success"
+      (let [debuggee! (atom nil)]
+        (t/is (= [{:command "attach"
+                   :request_seq 1
+                   :seq 1
+                   :success true
+                   :type "response"
+                   :body {}}]
+                 (handler/handle-client-input
+                  {:next-seq (server/auto-seq)
+                   :debuggee! debuggee!
+                   :input
+                   {:seq 1
+                    :type "request"
+                    :command "attach"
+                    :arguments {:clojure_dap {:type "fake"}}}})))
+        (t/is (nil? (schema/validate ::debuggee/debuggee @debuggee!)))))
+
+    (t/testing "failure"
+      (let [debuggee! (atom nil)]
+        (t/is (= [{:command "attach"
+                   :request_seq 1
+                   :seq 1
+                   :success false
+                   :type "response"
+                   :message "Failed to validate against schema :clojure-dap.server.handler/attach-opts: [:clojure_dap {:type [\"should be fake\"]}]"
+                   :body {:value {:clojure_dap {:type "ohno"}}}}]
+                 (handler/handle-client-input
+                  {:next-seq (server/auto-seq)
+                   :debuggee! debuggee!
+                   :input
+                   {:seq 1
+                    :type "request"
+                    :command "attach"
+                    :arguments {:clojure_dap {:type "ohno"}}}})))
+        (t/is (nil? @debuggee!)))))
 
   (t/testing "disconnect request"
     (t/is (= [{:command "disconnect"

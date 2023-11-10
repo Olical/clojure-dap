@@ -1,7 +1,6 @@
 (ns clojure-dap.server.handler
   "The pure handler functions called by clojure-dap.server that take in a DAP request and return a DAP response."
   (:require [clojure.string :as str]
-            [taoensso.timbre :as log]
             [malli.experimental :as mx]
             [cognitect.anomalies :as anom]
             [de.otto.nom.core :as nom]
@@ -13,22 +12,32 @@
   {:supportsCancelRequest false
    :supportsConfigurationDoneRequest true})
 
+(mx/defn render-anomaly
+  "Render an anomaly into a humanized explanation alongside the bad value we were checking."
+  [anomaly :- ::schema/anomaly]
+  :- [:map
+      [:explanation :string]
+      [:value any?]]
+  (let [{::anom/keys [message]
+         ::schema/keys [explanation humanized]}
+        (nom/payload anomaly)
+
+        {:keys [value]} explanation]
+    {:explanation (str message ": " (str/join ", " humanized))
+     :value value}))
+
 (mx/defn handle-anomalous-client-input :- [:sequential ::protocol/message]
   "Takes some bad input that failed validation and turns it into some kind of error response."
   [{:keys [anomaly next-seq]}
    :- [:map
        [:anomaly ::schema/anomaly]
        [:next-seq ::protocol/next-seq-fn]]]
-  (let [{::anom/keys [message]
-         ::schema/keys [explanation humanized]}
-        (nom/payload anomaly)
-
-        {:keys [value]} explanation]
+  (let [{:keys [explanation value]} (render-anomaly anomaly)]
     [{:type "event"
       :event "output"
       :seq (next-seq)
       :body {:category "important"
-             :output (str message ": " (str/join ", " humanized))
+             :output explanation
              :data value}}]))
 
 (schema/define! ::attach-opts [:map [:clojure_dap ::debuggee/create-opts]])
@@ -53,10 +62,16 @@
         :seq (next-seq)}]
 
       "attach"
-      (if-let [anomaly (schema/validate ::attach-opts (:arguments input))]
-        (handle-anomalous-client-input
-         {:anomaly anomaly
-          :next-seq next-seq})
+      (if-let [{:keys [explanation value]}
+               (some-> (schema/validate ::attach-opts (:arguments input))
+                       (render-anomaly))]
+        [{:type "response"
+          :command "attach"
+          :seq (next-seq)
+          :request_seq req-seq
+          :success false
+          :message explanation
+          :body {:value value}}]
         (let [debuggee-opts (get-in input [:arguments :clojure_dap])]
           (reset! debuggee! (debuggee/create debuggee-opts))
           [{:type "response"
