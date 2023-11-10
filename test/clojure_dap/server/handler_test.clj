@@ -48,7 +48,7 @@
                  {:seq 1
                   :type "request"
                   :command "attach"
-                  :arguments {:type "fake"}}})))
+                  :arguments {:clojure_dap {:type "fake"}}}})))
       (t/is (nil? (schema/validate ::debuggee/debuggee @debuggee!)))))
 
   (t/testing "disconnect request"

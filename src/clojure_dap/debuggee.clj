@@ -19,7 +19,10 @@
    opts :- [:map]]
   ((:evaluate this) this opts))
 
+(schema/define! ::create-opts
+  [:map [:type [:enum "fake"]]])
+
 (mx/defn create :- ::debuggee
-  [opts :- [:map [:type [:enum "fake"]]]]
+  [opts :- ::create-opts]
   (case (:type opts)
     "fake" (fake-debuggee/create)))

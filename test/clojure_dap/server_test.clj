@@ -29,7 +29,7 @@
         {:seq 2
          :type "request"
          :command "attach"
-         :arguments {:type "fake"}}])
+         :arguments {:clojure_dap {:type "fake"}}}])
       (s/close! input-stream)
       (server/run
        {:input-stream input-stream
@@ -97,7 +97,7 @@
         {:seq 2
          :type "request"
          :command "attach"
-         :arguments {:type "fake"}}])
+         :arguments {:clojure_dap {:type "fake"}}}])
       (s/close! output-stream)
       (server/run
        {:input-stream input-stream
@@ -121,7 +121,7 @@
                                  {:seq 2
                                   :type "request"
                                   :command "attach"
-                                  :arguments {:type "fake"}}))))]
+                                  :arguments {:clojure_dap {:type "fake"}}}))))]
       (let [anomalies! (atom [])
             {:keys [server-complete anomalies-stream]}
             (server/run-io-wrapped
