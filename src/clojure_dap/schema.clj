@@ -33,6 +33,7 @@
 
 (define! ::id :qualified-keyword)
 (define! ::anomaly [:fn nom/abominable?])
+(define! ::atom [:fn #(instance? clojure.lang.Atom %)])
 
 (mx/defn result :- vector?
   "Wraps the given schema in [:or ... :clojure-dap.schema/anomaly], prompting callers to handle your potential failure cases. Sort of modeled on Rust's Result<T, E> type which can return Ok(T) or Err(E)."
