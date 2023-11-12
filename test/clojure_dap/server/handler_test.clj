@@ -104,20 +104,57 @@
                 :seq 1}}))))
 
   (t/testing "setBreakpoints request"
-    (t/is (= [{:command "setBreakpoints"
+    (t/testing "before attach"
+      (t/is (match?
+             [{:command "setBreakpoints"
                :request_seq 1
                :seq 1
-               :success true
+               :success false
                :type "response"
+               :message #"Debuggee not initialised"
                :body {}}]
              (handler/handle-client-input
               {:next-seq (server/auto-seq)
-               :debuggee! (atom (fake-debuggee/create))
+               :debuggee! (atom nil)
                :input
                {:arguments {:source {:path "foo.clj"}}
                 :command "setBreakpoints"
                 :type "request"
-                :seq 1}})))))
+                :seq 1}}))))
+
+    (t/testing "success"
+      (t/is (= [{:command "setBreakpoints"
+                 :request_seq 1
+                 :seq 1
+                 :success true
+                 :type "response"
+                 :body {}}]
+               (handler/handle-client-input
+                {:next-seq (server/auto-seq)
+                 :debuggee! (atom (fake-debuggee/create))
+                 :input
+                 {:arguments {:source {:path "foo.clj"}}
+                  :command "setBreakpoints"
+                  :type "request"
+                  :seq 1}}))))
+
+    (t/testing "failure"
+      (t/testing "success"
+        (t/is (= [{:command "setBreakpoints"
+                   :request_seq 1
+                   :seq 1
+                   :success false
+                   :type "response"
+                   :message "Setting breakpoints failed"
+                   :body {}}]
+                 (handler/handle-client-input
+                  {:next-seq (server/auto-seq)
+                   :debuggee! (atom (fake-debuggee/create {:fail? true}))
+                   :input
+                   {:arguments {:source {:path "foo.clj"}}
+                    :command "setBreakpoints"
+                    :type "request"
+                    :seq 1}})))))))
 
 (t/deftest handle-anomalous-client-input
   (t/testing "given an anomaly it returns an output event containing an explanation"

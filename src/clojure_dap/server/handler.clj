@@ -6,7 +6,8 @@
             [de.otto.nom.core :as nom]
             [clojure-dap.schema :as schema]
             [clojure-dap.protocol :as protocol]
-            [clojure-dap.debuggee :as debuggee]))
+            [clojure-dap.debuggee :as debuggee]
+            [clojure-dap.debuggee.fake :as fake-debuggee]))
 
 (def initialised-response-body
   {:supportsCancelRequest false
@@ -40,7 +41,13 @@
              :output explanation
              :data value}}]))
 
-(schema/define! ::attach-opts [:map [:clojure_dap ::debuggee/create-opts]])
+(schema/define! ::create-debuggee-opts [:map [:type [:enum "fake"]]])
+(schema/define! ::attach-opts [:map [:clojure_dap ::create-debuggee-opts]])
+
+(mx/defn create-debuggee :- ::debuggee/debuggee
+  [opts :- ::create-debuggee-opts]
+  (case (:type opts)
+    "fake" (fake-debuggee/create)))
 
 (mx/defn handle-client-input :- [:sequential ::protocol/message]
   "Takes a message from a DAP client and a next-seq function (always returns the next sequence number, maintains it's own state) and returns any required responses in a seq of some kind."
@@ -57,7 +64,8 @@
                  :request_seq req-seq
                  :success true
                  :body {}}
-                m))]
+                m))
+        debuggee @debuggee!]
 
     (case (:command input)
       "initialize"
@@ -66,6 +74,12 @@
        {:type "event"
         :event "initialized"
         :seq (next-seq)}]
+
+      "disconnect"
+      [(resp {})]
+
+      "configurationDone"
+      [(resp {})]
 
       "attach"
       (if-let [{:keys [explanation value]}
@@ -76,14 +90,20 @@
            :message explanation
            :body {:value value}})]
         (let [debuggee-opts (get-in input [:arguments :clojure_dap])]
-          (reset! debuggee! (debuggee/create debuggee-opts))
+          (reset! debuggee! (create-debuggee debuggee-opts))
           [(resp {})]))
 
-      "disconnect"
-      [(resp {})]
-
-      "configurationDone"
-      [(resp {})]
-
       "setBreakpoints"
-      [(resp {})])))
+      [(if debuggee
+         (let [res (debuggee/set-breakpoints
+                    debuggee
+                    {})]
+           (if (nom/anomaly? res)
+             (resp
+              {:success false
+               :message "Setting breakpoints failed"})
+             (resp
+              {})))
+         (resp
+          {:success false
+           :message "Debuggee not initialised, you must attach to one first"}))])))
