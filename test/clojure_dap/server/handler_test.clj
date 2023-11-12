@@ -101,6 +101,22 @@
                {:arguments {}
                 :command "configurationDone"
                 :type "request"
+                :seq 1}}))))
+
+  (t/testing "setBreakpoints request"
+    (t/is (= [{:command "setBreakpoints"
+               :request_seq 1
+               :seq 1
+               :success true
+               :type "response"
+               :body {}}]
+             (handler/handle-client-input
+              {:next-seq (server/auto-seq)
+               :debuggee! (atom (fake-debuggee/create))
+               :input
+               {:arguments {:source {:path "foo.clj"}}
+                :command "setBreakpoints"
+                :type "request"
                 :seq 1}})))))
 
 (t/deftest handle-anomalous-client-input

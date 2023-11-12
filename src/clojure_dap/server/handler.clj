@@ -48,15 +48,21 @@
    :- [:map
        [:input ::protocol/message]
        [:next-seq ::protocol/next-seq-fn]]]
-  (let [req-seq (:seq input)]
+  (let [req-seq (:seq input)
+        resp (fn [m]
+               (merge
+                {:type "response"
+                 :command (:command input)
+                 :seq (next-seq)
+                 :request_seq req-seq
+                 :success true
+                 :body {}}
+                m))]
+
     (case (:command input)
       "initialize"
-      [{:type "response"
-        :command "initialize"
-        :seq (next-seq)
-        :request_seq req-seq
-        :success true
-        :body initialised-response-body}
+      [(resp
+        {:body initialised-response-body})
        {:type "event"
         :event "initialized"
         :seq (next-seq)}]
@@ -65,34 +71,19 @@
       (if-let [{:keys [explanation value]}
                (some-> (schema/validate ::attach-opts (:arguments input))
                        (render-anomaly))]
-        [{:type "response"
-          :command "attach"
-          :seq (next-seq)
-          :request_seq req-seq
-          :success false
-          :message explanation
-          :body {:value value}}]
+        [(resp
+          {:success false
+           :message explanation
+           :body {:value value}})]
         (let [debuggee-opts (get-in input [:arguments :clojure_dap])]
           (reset! debuggee! (debuggee/create debuggee-opts))
-          [{:type "response"
-            :command "attach"
-            :seq (next-seq)
-            :request_seq req-seq
-            :success true
-            :body {}}]))
+          [(resp {})]))
 
       "disconnect"
-      [{:type "response"
-        :command "disconnect"
-        :seq (next-seq)
-        :request_seq req-seq
-        :success true
-        :body {}}]
+      [(resp {})]
 
       "configurationDone"
-      [{:type "response"
-        :command "configurationDone"
-        :seq (next-seq)
-        :request_seq req-seq
-        :success true
-        :body {}}])))
+      [(resp {})]
+
+      "setBreakpoints"
+      [(resp {})])))

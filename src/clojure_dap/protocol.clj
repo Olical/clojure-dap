@@ -26,6 +26,9 @@
    ::next-request
    ::next-response
 
+   ::set-breakpoints-request
+   ::set-breakpoints-response
+
    ::configuration-done-request
    ::configuration-done-response
 
