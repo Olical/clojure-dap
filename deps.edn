@@ -26,7 +26,7 @@
  {:test {:extra-deps {lambdaisland/kaocha {:mvn/version "1.87.1366"}
                       nubank/matcher-combinators {:mvn/version "3.8.8"}}
          :main-opts ["-m" "kaocha.runner"]}
-  :repl {:extra-deps {cider/cider-nrepl {:mvn/version "0.42.1"}
+  :repl {:extra-deps {cider/cider-nrepl {:mvn/version "0.43.3"}
                       com.bhauman/rebel-readline {:mvn/version "0.1.4"}}}
   :outdated {:deps {com.github.liquidz/antq {:mvn/version "2.7.1133"}}
              :main-opts ["-m" "antq.core"]}
