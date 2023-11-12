@@ -41,6 +41,30 @@
              :output explanation
              :data value}}]))
 
+(defmulti handle-client-input* #(get-in % [:input :command]))
+
+(mx/defn handle-client-input :- [:sequential ::protocol/message]
+  "Takes a message from a DAP client and a next-seq function (always returns the next sequence number, maintains it's own state) and returns any required responses in a seq of some kind."
+  [{:keys [input next-seq debuggee!]}
+   :- [:map
+       [:input ::protocol/message]
+       [:next-seq ::protocol/next-seq-fn]
+       [:debuggee! ::schema/atom]]]
+  (handle-client-input*
+   {:input input
+    :next-seq next-seq
+    :debuggee! debuggee!
+    :debuggee @debuggee!
+    :resp (fn [m]
+            (merge
+             {:type "response"
+              :command (:command input)
+              :seq (next-seq)
+              :request_seq (:seq input)
+              :success true
+              :body {}}
+             m))}))
+
 (schema/define! ::create-debuggee-opts [:map [:type [:enum "fake"]]])
 (schema/define! ::attach-opts [:map [:clojure_dap ::create-debuggee-opts]])
 
@@ -48,8 +72,6 @@
   [opts :- ::create-debuggee-opts]
   (case (:type opts)
     "fake" (fake-debuggee/create)))
-
-(defmulti handle-client-input* #(get-in % [:input :command]))
 
 (defmethod handle-client-input* "initialize"
   [{:keys [next-seq resp]}]
@@ -95,25 +117,3 @@
      (resp
       {:success false
        :message "Debuggee not initialised, you must attach to one first"}))])
-
-(mx/defn handle-client-input :- [:sequential ::protocol/message]
-  "Takes a message from a DAP client and a next-seq function (always returns the next sequence number, maintains it's own state) and returns any required responses in a seq of some kind."
-  [{:keys [input next-seq debuggee!]}
-   :- [:map
-       [:input ::protocol/message]
-       [:next-seq ::protocol/next-seq-fn]
-       [:debuggee! ::schema/atom]]]
-  (handle-client-input*
-   {:input input
-    :next-seq next-seq
-    :debuggee! debuggee!
-    :debuggee @debuggee!
-    :resp (fn [m]
-            (merge
-             {:type "response"
-              :command (:command input)
-              :seq (next-seq)
-              :request_seq (:seq input)
-              :success true
-              :body {}}
-             m))}))
