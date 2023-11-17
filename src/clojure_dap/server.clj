@@ -85,7 +85,7 @@
           {:stream (stream/partition-anomalies
                     output-stream
                     (fn [message]
-                      (log/trace "S->C" message)
+                      (log/trace "SEND" message)
                       (protocol/render-message message))
                     anomalies-stream)
            :writer output-writer}))
@@ -102,7 +102,7 @@
             (if (and (s/closed? input-byte-stream) (s/drained? input-byte-stream))
               (s/close! input-message-stream)
               (let [message (stream/read-message input-char-stream)]
-                (log/trace "S<-C" message)
+                (log/trace "RECV" message)
                 @(s/put! input-message-stream message)
                 (recur))))))
 
