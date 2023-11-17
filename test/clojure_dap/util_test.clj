@@ -30,3 +30,9 @@
       (t/is (and (sorted? (:bar res)) (map? (:bar res))))
       (t/is (= 10 (:foo res)))
       (t/is (= 20 (get-in res [:bar :baz]))))))
+
+(t/deftest clean-ansi
+  (t/testing "strips escape codes"
+    (t/is (= " here  we  go!  done."
+             (util/clean-ansi
+              "\033[1m here \033[45m we \033[31m go! \033[0m done.")))))

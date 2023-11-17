@@ -6,8 +6,8 @@
             [taoensso.timbre.appenders.core :as appenders]
             [malli.experimental :as mx]
             [malli.instrument :as mi]
-            [malli.dev.pretty :as malli-pretty]
             [manifold.stream :as s]
+            [clojure-dap.util :as util]
             [clojure-dap.server :as server]))
 
 (mx/defn run :- :nil
@@ -39,7 +39,7 @@
   (log/info "Starting clojure-dap with configuration:" opts)
 
   (log/info "Initialising Malli instrumentation")
-  (mi/instrument! {:report (malli-pretty/thrower)})
+  (mi/instrument! {:report (util/malli-reporter)})
 
   (log/info "Starting server...")
   (let [{:keys [server-complete anomalies-stream]}
