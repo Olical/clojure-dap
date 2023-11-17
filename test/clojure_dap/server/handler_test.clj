@@ -52,15 +52,37 @@
                     :arguments {:clojure_dap {:type "fake"}}}})))
         (t/is (nil? (schema/validate ::debuggee/debuggee @debuggee!)))))
 
-    (t/testing "failure"
+    (t/testing "failure due to bad inputs"
+      (let [debuggee! (atom nil)]
+        (t/is (match?
+               [{:command "attach"
+                 :request_seq 1
+                 :seq 1
+                 :success false
+                 :type "response"
+                 :message #"Failed to validate against schema :clojure-dap.server.handler/attach-opts: \[:clojure_dap \{:type \[\"should be either fake or nrepl\"\]\}\]"
+                 :body {:value {:clojure_dap {:type "ohno"}}}}]
+               (handler/handle-client-input
+                {:next-seq (server/auto-seq)
+                 :debuggee! debuggee!
+                 :input
+                 {:seq 1
+                  :type "request"
+                  :command "attach"
+                  :arguments {:clojure_dap {:type "ohno"}}}})))
+        (t/is (nil? @debuggee!))))
+
+    (t/testing "failure due to a connection error (for example)"
       (let [debuggee! (atom nil)]
         (t/is (= [{:command "attach"
                    :request_seq 1
                    :seq 1
                    :success false
                    :type "response"
-                   :message "Failed to validate against schema :clojure-dap.server.handler/attach-opts: [:clojure_dap {:type [\"should be fake\"]}]"
-                   :body {:value {:clojure_dap {:type "ohno"}}}}]
+                   :message "[:clojure-dap.debuggee.fake/oh-no] No message"
+                   :body {:value {:clojure_dap
+                                  {:type "fake"
+                                   :fake {:create-error? true}}}}}]
                  (handler/handle-client-input
                   {:next-seq (server/auto-seq)
                    :debuggee! debuggee!
@@ -68,7 +90,9 @@
                    {:seq 1
                     :type "request"
                     :command "attach"
-                    :arguments {:clojure_dap {:type "ohno"}}}})))
+                    :arguments {:clojure_dap
+                                {:type "fake"
+                                 :fake {:create-error? true}}}}})))
         (t/is (nil? @debuggee!)))))
 
   (t/testing "disconnect request"
@@ -80,7 +104,7 @@
                :body {}}]
              (handler/handle-client-input
               {:next-seq (server/auto-seq)
-               :debuggee! (atom (fake-debuggee/create))
+               :debuggee! (atom (fake-debuggee/create {}))
                :input
                {:arguments {:restart false, :terminateDebuggee true}
                 :command "disconnect"
@@ -96,7 +120,7 @@
                :body {}}]
              (handler/handle-client-input
               {:next-seq (server/auto-seq)
-               :debuggee! (atom (fake-debuggee/create))
+               :debuggee! (atom (fake-debuggee/create {}))
                :input
                {:arguments {}
                 :command "configurationDone"
@@ -131,7 +155,7 @@
                  :body {}}]
                (handler/handle-client-input
                 {:next-seq (server/auto-seq)
-                 :debuggee! (atom (fake-debuggee/create))
+                 :debuggee! (atom (fake-debuggee/create {}))
                  :input
                  {:arguments {:source {:path "foo.clj"}}
                   :command "setBreakpoints"
@@ -183,7 +207,7 @@
                  :body {}}]
                (handler/handle-client-input
                 {:next-seq (server/auto-seq)
-                 :debuggee! (atom (fake-debuggee/create))
+                 :debuggee! (atom (fake-debuggee/create {}))
                  :input
                  {:arguments {:expression "(+ 1 2)"}
                   :command "evaluate"
@@ -217,7 +241,7 @@
                     :data {:event "some unknown event"
                            :foo true
                            :type "event"}
-                    :output #"^Failed to validate against schema :clojure-dap.protocol/message: \d+ JSON Validation errors: #: required key \[seq\] not found, "}}]
+                    :output #"^\[:cognitect.anomalies/incorrect\] Failed to validate against schema :clojure-dap.protocol/message: \d+ JSON Validation errors: #: required key \[seq\] not found, "}}]
            (handler/handle-anomalous-client-input
             {:anomaly (schema/validate
                        ::protocol/message

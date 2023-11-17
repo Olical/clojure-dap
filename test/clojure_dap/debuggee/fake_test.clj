@@ -6,7 +6,7 @@
             [clojure-dap.debuggee.fake :as fake-debuggee]))
 
 (t/deftest set-breakpoints
-  (let [{:keys [set-breakpoints] :as debuggee} (fake-debuggee/create)
+  (let [{:keys [set-breakpoints] :as debuggee} (fake-debuggee/create {})
         opts {}]
     (t/is (nil? (debuggee/set-breakpoints debuggee opts)))
     (t/is (= (list (list debuggee opts))
@@ -16,7 +16,7 @@
     (t/is (nom/anomaly? (debuggee/set-breakpoints debuggee {})))))
 
 (t/deftest evaluate
-  (let [{:keys [evaluate] :as debuggee} (fake-debuggee/create)
+  (let [{:keys [evaluate] :as debuggee} (fake-debuggee/create {})
         opts {}]
     (t/is (nil? (debuggee/evaluate debuggee opts)))
     (t/is (= (list (list debuggee opts))

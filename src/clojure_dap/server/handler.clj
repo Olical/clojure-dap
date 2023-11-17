@@ -7,7 +7,8 @@
             [clojure-dap.schema :as schema]
             [clojure-dap.protocol :as protocol]
             [clojure-dap.debuggee :as debuggee]
-            [clojure-dap.debuggee.fake :as fake-debuggee]))
+            [clojure-dap.debuggee.fake :as fake-debuggee]
+            [clojure-dap.debuggee.nrepl :as nrepl-debuggee]))
 
 (def initialised-response-body
   {:supportsCancelRequest false
@@ -24,7 +25,11 @@
         (nom/payload anomaly)
 
         {:keys [value]} explanation]
-    {:explanation (str message ": " (str/join ", " humanized))
+    {:explanation (str
+                   "[" (nom/kind anomaly) "] "
+                   (or message "No message")
+                   (when (seq humanized)
+                     (str ": " (str/join ", " humanized))))
      :value value}))
 
 (mx/defn handle-anomalous-client-input :- [:sequential ::protocol/message]
@@ -65,13 +70,19 @@
               :body {}}
              m))}))
 
-(schema/define! ::create-debuggee-opts [:map [:type [:enum "fake"]]])
+(schema/define! ::create-debuggee-opts
+  [:map
+   [:type [:enum "fake" "nrepl"]]
+   [:fake {:optional true} ::fake-debuggee/create-opts]])
+
 (schema/define! ::attach-opts [:map [:clojure_dap ::create-debuggee-opts]])
 
-(mx/defn create-debuggee :- ::debuggee/debuggee
+(mx/defn create-debuggee :- (schema/result ::debuggee/debuggee)
   [opts :- ::create-debuggee-opts]
-  (case (:type opts)
-    "fake" (fake-debuggee/create)))
+  (let [debuggee-opts (get opts (keyword (:type opts)) {})]
+    (case (:type opts)
+      "fake" (fake-debuggee/create debuggee-opts)
+      "nrepl" (nrepl-debuggee/create debuggee-opts))))
 
 (defmethod handle-client-input* "initialize"
   [{:keys [next-seq resp]}]
@@ -98,9 +109,17 @@
       {:success false
        :message explanation
        :body {:value value}})]
-    (let [debuggee-opts (get-in input [:arguments :clojure_dap])]
-      (reset! debuggee! (create-debuggee debuggee-opts))
-      [(resp {})])))
+    (let [debuggee-opts (get-in input [:arguments :clojure_dap])
+          debuggee (create-debuggee debuggee-opts)]
+      (if (nom/anomaly? debuggee)
+        (let [{:keys [explanation]} (render-anomaly debuggee)]
+          [(resp
+            {:success false
+             :message explanation
+             :body {:value (:arguments input)}})])
+        (do
+          (reset! debuggee! debuggee)
+          [(resp {})])))))
 
 (defmethod handle-client-input* "setBreakpoints"
   [{:keys [debuggee resp]}]
