@@ -117,3 +117,19 @@
      (resp
       {:success false
        :message "Debuggee not initialised, you must attach to one first"}))])
+
+(defmethod handle-client-input* "evaluate"
+  [{:keys [debuggee resp]}]
+  [(if debuggee
+     (let [res (debuggee/evaluate
+                debuggee
+                {})]
+       (if (nom/anomaly? res)
+         (resp
+          {:success false
+           :message "Evaluate failed"})
+         (resp
+          {})))
+     (resp
+      {:success false
+       :message "Debuggee not initialised, you must attach to one first"}))])

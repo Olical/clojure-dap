@@ -29,6 +29,9 @@
    ::set-breakpoints-request
    ::set-breakpoints-response
 
+   ::evaluate-request
+   ::evaluate-response
+
    ::configuration-done-request
    ::configuration-done-response
 
