@@ -33,10 +33,6 @@
    [:root-dir {:optional true} :string]
    [:response-timeout-ms {:optional true} pos-int?]])
 
-;; TODO Destroy method that cleans up the connection on disconnect.
-;; TODO Function that takes a seq of messages and returns a result / maybe anomaly if there was a problem.
-;; TODO Return results from evaluate
-
 (mx/defn create :- (schema/result ::debuggee/debuggee)
   [{:keys [host port port-file-name root-dir response-timeout-ms]
     :or {host "127.0.0.1"
