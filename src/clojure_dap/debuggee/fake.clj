@@ -27,5 +27,5 @@
   (if create-error?
     (nom/fail ::oh-no {:message "Creation failed!"})
     {:fail? fail?
-     :set-breakpoints (spy/spy #'set-breakpoints)
-     :evaluate (spy/spy #'evaluate)}))
+     :set-breakpoints (spy/spy set-breakpoints)
+     :evaluate (spy/spy evaluate)}))

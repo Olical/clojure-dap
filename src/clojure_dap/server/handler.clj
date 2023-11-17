@@ -73,9 +73,10 @@
 (schema/define! ::create-debuggee-opts
   [:map
    [:type [:enum "fake" "nrepl"]]
-   [:fake {:optional true} ::fake-debuggee/create-opts]])
+   [:fake {:optional true} ::fake-debuggee/create-opts]
+   [:nrepl {:optional true} ::nrepl-debuggee/create-opts]])
 
-(schema/define! ::attach-opts [:map [:clojure_dap ::create-debuggee-opts]])
+(schema/define! ::attach-opts [:map [:clojure_dap {:optional true} ::create-debuggee-opts]])
 
 (mx/defn create-debuggee :- (schema/result ::debuggee/debuggee)
   [opts :- ::create-debuggee-opts]
@@ -110,7 +111,7 @@
        :message explanation
        :body {:value value}})]
     (let [debuggee-opts (get-in input [:arguments :clojure_dap])
-          debuggee (create-debuggee debuggee-opts)]
+          debuggee (create-debuggee (or debuggee-opts {:type "nrepl"}))]
       (if (nom/anomaly? debuggee)
         (let [{:keys [explanation]} (render-anomaly debuggee)]
           [(resp
@@ -138,11 +139,11 @@
        :message "Debuggee not initialised, you must attach to one first"}))])
 
 (defmethod handle-client-input* "evaluate"
-  [{:keys [debuggee resp]}]
+  [{:keys [debuggee resp input]}]
   [(if debuggee
      (let [res (debuggee/evaluate
                 debuggee
-                {})]
+                {:expression (get-in input [:arguments :expression])})]
        (if (nom/anomaly? res)
          (resp
           {:success false

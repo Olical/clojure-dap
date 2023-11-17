@@ -15,5 +15,6 @@
 
 (mx/defn evaluate :- (schema/result :nil)
   [this :- ::debuggee
-   opts :- [:map]]
+   opts :- [:map
+            [:expression :string]]]
   ((:evaluate this) this opts))
