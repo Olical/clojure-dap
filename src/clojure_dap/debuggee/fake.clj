@@ -14,7 +14,7 @@
 (defn evaluate [this _opts]
   (if (:fail? this)
     (nom/fail ::evaluate-failure {:detail "Oh no!"})
-    nil))
+    {:result ":fake-eval-result"}))
 
 (schema/define!
   ::create-opts

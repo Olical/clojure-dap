@@ -1,6 +1,7 @@
 (ns clojure-dap.debuggee.nrepl
   "Connects to an nREPL server and uses the CIDER debugger middleware as an implementation."
   (:require [clojure.java.io :as io]
+            [clojure.string :as str]
             [taoensso.timbre :as log]
             [me.raynes.fs :as rfs]
             [nrepl.core :as nrepl]
@@ -17,12 +18,14 @@
 
 (defn evaluate [this {:keys [expression]}]
   (nom/try-nom
-    (log/info "---"
-              (nrepl/message
-               (get-in this [:connection :client])
-               {:op "eval"
-                :code expression}))
-    nil))
+    {:result
+     (->> (nrepl/message
+           (get-in this [:connection :client])
+           {:op "eval"
+            :code expression})
+          (keep (fn [result]
+                  (some result #{:out :err :value})))
+          (str/join))}))
 
 (schema/define!
   ::create-opts

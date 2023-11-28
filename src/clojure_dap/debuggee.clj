@@ -13,7 +13,9 @@
    opts :- [:map]]
   ((:set-breakpoints this) this opts))
 
-(mx/defn evaluate :- (schema/result :nil)
+(mx/defn evaluate :- (schema/result
+                      [:map
+                       [:result :string]])
   [this :- ::debuggee
    opts :- [:map
             [:expression :string]]]

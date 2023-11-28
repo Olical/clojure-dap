@@ -18,7 +18,7 @@
 (t/deftest evaluate
   (let [{:keys [evaluate] :as debuggee} (fake-debuggee/create {})
         opts {:expression "(+ 1 2)"}]
-    (t/is (nil? (debuggee/evaluate debuggee opts)))
+    (t/is (= {:result ":fake-eval-result"} (debuggee/evaluate debuggee opts)))
     (t/is (= (list (list debuggee opts))
              (spy/calls evaluate))))
 

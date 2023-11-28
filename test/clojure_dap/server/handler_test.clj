@@ -204,7 +204,8 @@
                  :seq 1
                  :success true
                  :type "response"
-                 :body {}}]
+                 :body {:result ":fake-eval-result"
+                        :variablesReference 0}}]
                (handler/handle-client-input
                 {:next-seq (server/auto-seq)
                  :debuggee! (atom (fake-debuggee/create {}))

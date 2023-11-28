@@ -149,7 +149,9 @@
           {:success false
            :message "Evaluate failed"})
          (resp
-          {})))
+          {:body
+           {:variablesReference 0
+            :result (:result res)}})))
      (resp
       {:success false
        :message "Debuggee not initialised, you must attach to one first"}))])
