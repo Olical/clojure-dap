@@ -2,9 +2,11 @@
   "The pure handler functions called by clojure-dap.server that take in a DAP request and return a DAP response."
   (:require [clojure.string :as str]
             [malli.experimental :as mx]
+            [taoensso.timbre :as log]
             [cognitect.anomalies :as anom]
             [de.otto.nom.core :as nom]
             [clojure-dap.schema :as schema]
+            [clojure-dap.stream :as stream]
             [clojure-dap.protocol :as protocol]
             [clojure-dap.debuggee :as debuggee]
             [clojure-dap.debuggee.fake :as fake-debuggee]
@@ -38,13 +40,17 @@
    :- [:map
        [:anomaly ::schema/anomaly]
        [:next-seq ::protocol/next-seq-fn]]]
-  (let [{:keys [explanation value]} (render-anomaly anomaly)]
-    [{:type "event"
-      :event "output"
-      :seq (next-seq)
-      :body {:category "important"
-             :output explanation
-             :data value}}]))
+  [{:type "event"
+    :event "output"
+    :seq (next-seq)
+    :body
+    (if (= ::stream/closed (nom/kind anomaly))
+      {:category "important"
+       :output "Input stream closed, clojure-dap will shut down."}
+      (let [{:keys [explanation value]} (render-anomaly anomaly)]
+        {:category "important"
+         :output explanation
+         :data value}))}])
 
 (defmulti handle-client-input* #(get-in % [:input :command]))
 

@@ -90,9 +90,18 @@
 
       (t/is (match?
              [:de.otto.nom.core/anomaly
+              ::stream/closed
+              {:cognitect.anomalies/message "Received a nil reading the next DAP message. This means the stream has closed."}]
+             (stream/read-message stream))))
+
+    (with-open [stream (s/stream)]
+      (s/put! stream :not-a-char)
+
+      (t/is (match?
+             [:de.otto.nom.core/anomaly
               :cognitect.anomalies/incorrect
-              {:cognitect.anomalies/message "Received a non-character while reading the next DAP message. A nil probably means the stream closed."
-               ::stream/value nil}]
+              {:cognitect.anomalies/message "Received a non-character while reading the next DAP message."
+               ::stream/value :not-a-char}]
              (stream/read-message stream))))))
 
 (t/deftest reader-into-stream!

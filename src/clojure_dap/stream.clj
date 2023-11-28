@@ -25,16 +25,24 @@
   [input-stream :- ::stream]
   (loop [header-buffer ""]
     (let [next-char @(s/take! input-stream)]
-      (if (char? next-char)
+      (cond
+        (char? next-char)
         (let [header-buffer (str header-buffer next-char)]
           (if (or (= header-buffer protocol/header-sep)
                   (str/ends-with? header-buffer protocol/double-header-sep))
             (nom/let-nom> [{:keys [Content-Length]} (protocol/parse-header header-buffer)]
               (protocol/parse-message (str/join (repeatedly Content-Length #(deref (s/take! input-stream))))))
             (recur header-buffer)))
+
+        (nil? next-char)
+        (nom/fail
+         ::closed
+         {::anom/message "Received a nil reading the next DAP message. This means the stream has closed."})
+
+        :else
         (nom/fail
          ::anom/incorrect
-         {::anom/message "Received a non-character while reading the next DAP message. A nil probably means the stream closed."
+         {::anom/message "Received a non-character while reading the next DAP message."
           ::value next-char})))))
 
 (mx/defn reader-into-stream! :- :nil

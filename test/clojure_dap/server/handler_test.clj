@@ -1,7 +1,9 @@
 (ns clojure-dap.server.handler-test
   (:require [clojure.test :as t]
+            [de.otto.nom.core :as nom]
             [matcher-combinators.test]
             [clojure-dap.schema :as schema]
+            [clojure-dap.stream :as stream]
             [clojure-dap.protocol :as protocol]
             [clojure-dap.server :as server]
             [clojure-dap.server.handler :as handler]
@@ -249,4 +251,14 @@
                        {:type "event"
                         :event "some unknown event"
                         :foo true})
-             :next-seq (server/auto-seq)})))))
+             :next-seq (server/auto-seq)}))))
+
+  (t/testing "when the anomaly is a ::stream/closed then we just return nothing"
+    (t/is (= [{:type "event"
+               :event "output"
+               :seq 1
+               :body {:category "important"
+                      :output "Input stream closed, clojure-dap will shut down."}}]
+             (handler/handle-anomalous-client-input
+              {:anomaly (nom/fail ::stream/closed)
+               :next-seq (server/auto-seq)})))))
