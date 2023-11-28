@@ -76,25 +76,26 @@
 
     (t/testing "failure due to a connection error (for example)"
       (let [debuggee! (atom nil)]
-        (t/is (= [{:command "attach"
-                   :request_seq 1
-                   :seq 1
-                   :success false
-                   :type "response"
-                   :message "[:clojure-dap.debuggee.fake/oh-no] No message"
-                   :body {:value {:clojure_dap
-                                  {:type "fake"
-                                   :fake {:create-error? true}}}}}]
-                 (handler/handle-client-input
-                  {:next-seq (server/auto-seq)
-                   :debuggee! debuggee!
-                   :input
-                   {:seq 1
-                    :type "request"
-                    :command "attach"
-                    :arguments {:clojure_dap
+        (t/is (match?
+               [{:command "attach"
+                 :request_seq 1
+                 :seq 1
+                 :success false
+                 :type "response"
+                 :message #"^Failed to connect to nREPL.\nDo you have one running?"
+                 :body {:value {:clojure_dap
                                 {:type "fake"
-                                 :fake {:create-error? true}}}}})))
+                                 :fake {:create-error? true}}}}}]
+               (handler/handle-client-input
+                {:next-seq (server/auto-seq)
+                 :debuggee! debuggee!
+                 :input
+                 {:seq 1
+                  :type "request"
+                  :command "attach"
+                  :arguments {:clojure_dap
+                              {:type "fake"
+                               :fake {:create-error? true}}}}})))
         (t/is (nil? @debuggee!)))))
 
   (t/testing "disconnect request"

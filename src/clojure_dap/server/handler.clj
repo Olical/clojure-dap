@@ -116,13 +116,20 @@
       {:success false
        :message explanation
        :body {:value value}})]
-    (let [debuggee-opts (get-in input [:arguments :clojure_dap])
-          debuggee (create-debuggee (or debuggee-opts {:type "nrepl"}))]
+    (let [debuggee-opts (get-in input [:arguments :clojure_dap]
+                                {:type "nrepl"})
+          debuggee (create-debuggee debuggee-opts)]
       (if (nom/anomaly? debuggee)
         (let [{:keys [explanation]} (render-anomaly debuggee)]
           [(resp
             {:success false
-             :message explanation
+             :message (str/join
+                       "\n"
+                       ["Failed to connect to nREPL."
+                        "Do you have one running?"
+                        "Is there a .nrepl-port file with a port inside it?"
+                        debuggee-opts
+                        explanation])
              :body {:value (:arguments input)}})])
         (do
           (reset! debuggee! debuggee)
