@@ -135,6 +135,10 @@
           (reset! debuggee! debuggee)
           [(resp {})])))))
 
+(def missing-debuggee-warning
+  {:success false
+   :message "Debuggee not initialised, you must attach to one first"})
+
 (defmethod handle-client-input* "setBreakpoints"
   [{:keys [debuggee resp]}]
   [(if debuggee
@@ -147,9 +151,7 @@
            :message "Setting breakpoints failed"})
          (resp
           {})))
-     (resp
-      {:success false
-       :message "Debuggee not initialised, you must attach to one first"}))])
+     (resp missing-debuggee-warning))])
 
 (defmethod handle-client-input* "evaluate"
   [{:keys [debuggee resp input]}]
@@ -165,6 +167,4 @@
           {:body
            {:variablesReference 0
             :result (:result res)}})))
-     (resp
-      {:success false
-       :message "Debuggee not initialised, you must attach to one first"}))])
+     (resp missing-debuggee-warning))])
