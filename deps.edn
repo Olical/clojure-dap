@@ -14,9 +14,9 @@
 
   ;; Ensure all logging flows through Timbre.
   com.fzakaria/slf4j-timbre {:mvn/version "0.4.1"}
-  org.slf4j/log4j-over-slf4j {:mvn/version "2.0.9"}
-  org.slf4j/jul-to-slf4j {:mvn/version "2.0.9"}
-  org.slf4j/jcl-over-slf4j {:mvn/version "2.0.9"}
+  org.slf4j/log4j-over-slf4j {:mvn/version "2.0.10"}
+  org.slf4j/jul-to-slf4j {:mvn/version "2.0.10"}
+  org.slf4j/jcl-over-slf4j {:mvn/version "2.0.10"}
 
   com.cognitect/anomalies {:mvn/version "0.1.12"}
   de.otto/nom {:mvn/version "0.3.0"}
@@ -29,7 +29,7 @@
          :main-opts ["-m" "kaocha.runner"]}
   :repl {:extra-deps {cider/cider-nrepl {:mvn/version "0.44.0"}
                       com.bhauman/rebel-readline {:mvn/version "0.1.4"}}}
-  :outdated {:deps {com.github.liquidz/antq {:mvn/version "2.7.1147"}}
+  :outdated {:deps {com.github.liquidz/antq {:mvn/version "2.8.1169"}}
              :main-opts ["-m" "antq.core"]}
   :format {:deps {dev.weavejester/cljfmt {:mvn/version "0.12.0"}}
            :main-opts ["-m" "cljfmt.main" "fix"]}}
