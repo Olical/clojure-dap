@@ -1,8 +1,8 @@
 (ns clojure-dap.server.handler
   "The pure handler functions called by clojure-dap.server that take in a DAP request and return a DAP response."
   (:require [clojure.string :as str]
-            [malli.experimental :as mx]
             [taoensso.timbre :as log]
+            [malli.experimental :as mx]
             [cognitect.anomalies :as anom]
             [de.otto.nom.core :as nom]
             [clojure-dap.schema :as schema]
@@ -15,6 +15,35 @@
 (def initialised-response-body
   {:supportsCancelRequest false
    :supportsConfigurationDoneRequest true})
+
+(mx/defn socket-exception-anomaly?
+  "Given an anomaly, returs true if it's caused by a java.net.SocketException."
+  [a :- ::schema/anomaly]
+  :- :boolean
+  (= java.net.SocketException (type (:exception (nom/payload a)))))
+
+(mx/defn handle-anomaly
+  "If you give it an anomaly, it'll respond appropriately by returning errors (possibly also notifying the client of a disconnect!). If the argument isn't an anomaly though it'll return nil so you can continue on your merry way. Intended for use in an or statement."
+  [a :- (schema/result :any)
+   {:keys [resp input next-seq]}
+   :- [:map
+       [:input ::protocol/message]
+       [:resp fn?]
+       [:next-seq fn?]]]
+  (when (nom/anomaly? a)
+    (log/error "Handling anomaly" a)
+
+    (cond->
+     [(resp
+       {:success false
+        :message (str (:command input) " command failed (" (nom/kind a) ")")})]
+
+      (socket-exception-anomaly? a)
+      (conj
+       {:type "event"
+        :event "terminated"
+        :seq (next-seq)
+        :body {}}))))
 
 (mx/defn render-anomaly
   "Render an anomaly into a humanized explanation alongside the bad value we were checking."
@@ -140,31 +169,24 @@
    :message "Debuggee not initialised, you must attach to one first"})
 
 (defmethod handle-client-input* "setBreakpoints"
-  [{:keys [debuggee resp]}]
-  [(if debuggee
-     (let [res (debuggee/set-breakpoints
-                debuggee
-                {})]
-       (if (nom/anomaly? res)
-         (resp
-          {:success false
-           :message "Setting breakpoints failed"})
-         (resp
-          {})))
-     (resp missing-debuggee-warning))])
+  [{:keys [debuggee resp] :as opts}]
+  (if debuggee
+    (let [res (debuggee/set-breakpoints
+               debuggee
+               {})]
+      (or (handle-anomaly res opts)
+          [(resp {})]))
+    [(resp missing-debuggee-warning)]))
 
 (defmethod handle-client-input* "evaluate"
-  [{:keys [debuggee resp input]}]
-  [(if debuggee
-     (let [res (debuggee/evaluate
-                debuggee
-                {:expression (get-in input [:arguments :expression])})]
-       (if (nom/anomaly? res)
-         (resp
-          {:success false
-           :message "Evaluate failed"})
-         (resp
-          {:body
-           {:variablesReference 0
-            :result (:result res)}})))
-     (resp missing-debuggee-warning))])
+  [{:keys [debuggee resp input] :as opts}]
+  (if debuggee
+    (let [res (debuggee/evaluate
+               debuggee
+               {:expression (get-in input [:arguments :expression])})]
+      (or (handle-anomaly res opts)
+          [(resp
+            {:body
+             {:variablesReference 0
+              :result (:result res)}})]))
+    [(resp missing-debuggee-warning)]))

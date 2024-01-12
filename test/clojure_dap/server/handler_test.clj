@@ -1,5 +1,6 @@
 (ns clojure-dap.server.handler-test
   (:require [clojure.test :as t]
+            [spy.core :as spy]
             [de.otto.nom.core :as nom]
             [matcher-combinators.test]
             [clojure-dap.schema :as schema]
@@ -171,11 +172,29 @@
                  :seq 1
                  :success false
                  :type "response"
-                 :message "Setting breakpoints failed"
+                 :message "setBreakpoints command failed (:clojure-dap.debuggee.fake/set-breakpoints-failure)"
                  :body {}}]
                (handler/handle-client-input
                 {:next-seq (server/auto-seq)
                  :debuggee! (atom (fake-debuggee/create {:fail? true}))
+                 :input
+                 {:arguments {:source {:path "foo.clj"}}
+                  :command "setBreakpoints"
+                  :type "request"
+                  :seq 1}}))))
+
+    (t/testing "socket disconnected"
+      (t/is (= [{:command "setBreakpoints"
+                 :request_seq 1
+                 :seq 1
+                 :success false
+                 :type "response"
+                 :message "setBreakpoints command failed (:clojure-dap.debuggee.fake/socket-exception)"
+                 :body {}}
+                {:body {}, :event "terminated", :seq 2, :type "event"}]
+               (handler/handle-client-input
+                {:next-seq (server/auto-seq)
+                 :debuggee! (atom (fake-debuggee/create {:socket-exception? true}))
                  :input
                  {:arguments {:source {:path "foo.clj"}}
                   :command "setBreakpoints"
@@ -224,11 +243,29 @@
                  :seq 1
                  :success false
                  :type "response"
-                 :message "Evaluate failed"
+                 :message "evaluate command failed (:clojure-dap.debuggee.fake/evaluate-failure)"
                  :body {}}]
                (handler/handle-client-input
                 {:next-seq (server/auto-seq)
                  :debuggee! (atom (fake-debuggee/create {:fail? true}))
+                 :input
+                 {:arguments {:expression "(+ 1 2)"}
+                  :command "evaluate"
+                  :type "request"
+                  :seq 1}}))))
+
+    (t/testing "socket disconnected"
+      (t/is (= [{:command "evaluate"
+                 :request_seq 1
+                 :seq 1
+                 :success false
+                 :type "response"
+                 :message "evaluate command failed (:clojure-dap.debuggee.fake/socket-exception)"
+                 :body {}}
+                {:body {}, :event "terminated", :seq 2, :type "event"}]
+               (handler/handle-client-input
+                {:next-seq (server/auto-seq)
+                 :debuggee! (atom (fake-debuggee/create {:socket-exception? true}))
                  :input
                  {:arguments {:expression "(+ 1 2)"}
                   :command "evaluate"
@@ -263,3 +300,50 @@
              (handler/handle-anomalous-client-input
               {:anomaly (nom/fail ::stream/closed)
                :next-seq (server/auto-seq)})))))
+
+(t/deftest socket-exception-anomaly?
+  (t/testing "returns true when given an anomaly containing a SocketException"
+    (t/is (handler/socket-exception-anomaly?
+           (nom/fail :uhoh {:exception (java.net.SocketException.)})))
+    (t/is (not
+           (handler/socket-exception-anomaly?
+            (nom/fail :uhoh {:exception (Exception.)}))))))
+
+(t/deftest handle-anomaly
+  (t/testing "does nothing if you don't give it an anomaly"
+    (t/is (nil? (handler/handle-anomaly
+                 10
+                 {:resp (spy/spy)
+                  :next-seq (spy/spy)
+                  :input {:arguments {:expression "(+ 1 2)"}
+                          :command "evaluate"
+                          :type "request"
+                          :seq 1}}))))
+
+  (t/testing "returns a failure if it's an anomaly"
+    (t/is (= [{:message "evaluate command failed (:ohno)"
+               :success false}]
+             (handler/handle-anomaly
+              (nom/fail :ohno {:message "aaaa"})
+              {:resp (spy/spy identity)
+               :next-seq (spy/spy (constantly 1))
+               :input {:arguments {:expression "(+ 1 2)"}
+                       :command "evaluate"
+                       :type "request"
+                       :seq 1}}))))
+
+  (t/testing "also returns a terminated event if the anomaly is a SocketException"
+    (t/is (= [{:message "evaluate command failed (:ohno)"
+               :success false}
+              {:body {}
+               :event "terminated"
+               :seq 1
+               :type "event"}]
+             (handler/handle-anomaly
+              (nom/fail :ohno {:exception (java.net.SocketException.)})
+              {:resp (spy/spy identity)
+               :next-seq (spy/spy (constantly 1))
+               :input {:arguments {:expression "(+ 1 2)"}
+                       :command "evaluate"
+                       :type "request"
+                       :seq 1}})))))

@@ -35,7 +35,9 @@
    ::configuration-done-request
    ::configuration-done-response
 
-   ::output-event])
+   ::output-event
+   ::exited-event
+   ::terminated-event])
 
 (schema/define! ::message
   (into
