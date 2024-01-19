@@ -37,14 +37,16 @@
 
 (defn evaluate [this {:keys [expression]}]
   (nom/try-nom
-    {:result
-     (->> (nrepl/message
-           (get-in this [:connection :client])
-           {:op "eval"
-            :code expression})
-          (keep (fn [result]
-                  (some result #{:out :err :value})))
-          (str/join))}))
+    (let [messages (nrepl/message
+                    (get-in this [:connection :client])
+                    {:op "eval"
+                     :code expression})]
+      (log/debug "evaluate results" messages)
+      {:result
+       (->> messages
+            (keep (fn [result]
+                    (some result #{:out :err :value})))
+            (str/join))})))
 
 (schema/define!
   ::create-opts
@@ -69,7 +71,10 @@
           transport (nrepl/connect
                      {:host host
                       :port port})
-          client (nrepl/client transport response-timeout-ms)]
+          raw-client (nrepl/client transport response-timeout-ms)
+          client (nrepl/client-session
+                  raw-client
+                  {:session (nrepl/new-session raw-client)})]
 
       (nrepl/message client {:op "init-debugger"})
 
