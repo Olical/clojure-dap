@@ -169,13 +169,14 @@
    :message "Debuggee not initialised, you must attach to one first"})
 
 (defmethod handle-client-input* "setBreakpoints"
-  [{:keys [debuggee resp] :as opts}]
+  [{:keys [debuggee resp input] :as opts}]
   (if debuggee
     (let [res (debuggee/set-breakpoints
                debuggee
-               {})]
+               {:source (get-in input [:arguments :source])
+                :breakpoints (get-in input [:arguments :breakpoints])})]
       (or (handle-anomaly res opts)
-          [(resp {})]))
+          [(resp {:body res})]))
     [(resp missing-debuggee-warning)]))
 
 (defmethod handle-client-input* "evaluate"

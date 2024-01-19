@@ -145,7 +145,8 @@
               {:next-seq (server/auto-seq)
                :debuggee! (atom nil)
                :input
-               {:arguments {:source {:path "foo.clj"}}
+               {:arguments {:source {:path "foo.clj"}
+                            :breakpoints [{:line 5}]}
                 :command "setBreakpoints"
                 :type "request"
                 :seq 1}}))))
@@ -156,12 +157,13 @@
                  :seq 1
                  :success true
                  :type "response"
-                 :body {}}]
+                 :body {:breakpoints [{:line 5, :verified true}]}}]
                (handler/handle-client-input
                 {:next-seq (server/auto-seq)
                  :debuggee! (atom (fake-debuggee/create {}))
                  :input
-                 {:arguments {:source {:path "foo.clj"}}
+                 {:arguments {:source {:path "foo.clj"}
+                              :breakpoints [{:line 5}]}
                   :command "setBreakpoints"
                   :type "request"
                   :seq 1}}))))
@@ -178,7 +180,8 @@
                 {:next-seq (server/auto-seq)
                  :debuggee! (atom (fake-debuggee/create {:fail? true}))
                  :input
-                 {:arguments {:source {:path "foo.clj"}}
+                 {:arguments {:source {:path "foo.clj"}
+                              :breakpoints [{:line 5}]}
                   :command "setBreakpoints"
                   :type "request"
                   :seq 1}}))))
@@ -196,7 +199,8 @@
                 {:next-seq (server/auto-seq)
                  :debuggee! (atom (fake-debuggee/create {:socket-exception? true}))
                  :input
-                 {:arguments {:source {:path "foo.clj"}}
+                 {:arguments {:source {:path "foo.clj"}
+                              :breakpoints []}
                   :command "setBreakpoints"
                   :type "request"
                   :seq 1}})))))

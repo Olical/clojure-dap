@@ -7,13 +7,14 @@
 
 (t/deftest set-breakpoints
   (let [{:keys [set-breakpoints] :as debuggee} (fake-debuggee/create {})
-        opts {}]
-    (t/is (nil? (debuggee/set-breakpoints debuggee opts)))
+        opts {:breakpoints [{:line 5}]
+              :source {:path "foo.clj"}}]
+    (t/is (= {:breakpoints [{:line 5, :verified true}]} (debuggee/set-breakpoints debuggee opts)))
     (t/is (= (list (list debuggee opts))
-             (spy/calls set-breakpoints))))
+             (spy/calls set-breakpoints)))
 
-  (let [debuggee (fake-debuggee/create {:fail? true})]
-    (t/is (nom/anomaly? (debuggee/set-breakpoints debuggee {})))))
+    (let [debuggee (fake-debuggee/create {:fail? true})]
+      (t/is (nom/anomaly? (debuggee/set-breakpoints debuggee opts))))))
 
 (t/deftest evaluate
   (let [{:keys [evaluate] :as debuggee} (fake-debuggee/create {})

@@ -6,7 +6,7 @@
             [clojure-dap.schema :as schema]
             [clojure-dap.debuggee :as debuggee]))
 
-(defn set-breakpoints [this _opts]
+(defn set-breakpoints [this {:keys [_source breakpoints]}]
   (cond
     (:fail? this)
     (nom/fail ::set-breakpoints-failure {:detail "Oh no!"})
@@ -14,7 +14,7 @@
     (:socket-exception? this)
     (nom/fail ::socket-exception {:exception (java.net.SocketException.)})
 
-    :else nil))
+    :else {:breakpoints (mapv #(assoc % :verified true) breakpoints)}))
 
 (defn evaluate [this _opts]
   (cond

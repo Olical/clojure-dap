@@ -10,11 +10,30 @@
             [clojure-dap.schema :as schema]
             [clojure-dap.debuggee :as debuggee]))
 
-(defn set-breakpoints [this _opts]
+(defn set-breakpoints [this {:keys [source breakpoints]}]
   (nom/try-nom
-    (if (:fail? this)
-      (nom/fail ::set-breakpoints-failure {:detail "Oh no!"})
-      nil)))
+    (let [path (:path source)
+          source-lines (vec (str/split-lines (slurp path)))
+          instrumented-source
+          (->> (reduce
+                (fn [source-lines {:keys [line]}]
+                  (update source-lines (dec line) #(str "#break " %)))
+                source-lines
+                breakpoints)
+               (str/join "\n"))]
+      (log/debug
+       "set-breakpoints eval result"
+       (doall
+        (nrepl/message
+         (get-in this [:connection :client])
+         {:op "eval"
+          :file path
+          :code instrumented-source}))))
+    {:breakpoints
+     (mapv
+      (fn [breakpoint]
+        (assoc breakpoint :verified true))
+      breakpoints)}))
 
 (defn evaluate [this {:keys [expression]}]
   (nom/try-nom
@@ -52,12 +71,7 @@
                       :port port})
           client (nrepl/client transport response-timeout-ms)]
 
-      (try
-        (doall (nrepl/message client {:op "init-debugger"}))
-        (catch Exception e
-          (log/error e "Exception from init-debugger, closing transport")
-          (.close transport)
-          (throw e)))
+      (nrepl/message client {:op "init-debugger"})
 
       {:connection {:transport transport
                     :client client}
