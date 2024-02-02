@@ -36,3 +36,9 @@
     (t/is (= " here  we  go!  done."
              (util/clean-ansi
               "\033[1m here \033[45m we \033[31m go! \033[0m done.")))))
+
+(t/deftest safe-meta
+  (t/testing "returns meta from things that can have it, nil if not"
+    (t/is (= {:foo 10} (util/safe-meta (with-meta {} {:foo 10}))))
+    (t/is (nil? (util/safe-meta {})))
+    (t/is (nil? (util/safe-meta 10)))))

@@ -46,3 +46,10 @@
     (fn [type data]
       (let [message (with-out-str (report type data))]
         (throw (ex-info (clean-ansi message) {:type type :data data}))))))
+
+(defn safe-meta
+  "Returns meta for the given item if it implements IMeta, nil otherwise."
+  [x]
+  (if (instance? clojure.lang.IMeta x)
+    (meta x)
+    nil))
