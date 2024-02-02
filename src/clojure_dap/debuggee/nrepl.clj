@@ -23,7 +23,7 @@
                (str/join "\n"))]
       (log/debug
        "set-breakpoints eval result"
-       (doall
+       (nrepl/combine-responses
         (nrepl/message
          (get-in this [:connection :client])
          {:op "eval"
