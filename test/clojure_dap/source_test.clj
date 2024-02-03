@@ -7,9 +7,9 @@
 10
 :foo-bar
 
-(defn some-fn [a]
+:before (defn some-fn [a]
   (print \"hi\")
-  (inc a))
+  (inc a)) :after
 
 (+ 10 20)")
 
@@ -26,7 +26,7 @@
     (t/is (nil? (line 3)))
     (t/is (nil? (line 4)))
     (t/is (nil? (line 5)))
-    (t/is (= {:column 1, :end-column 11, :end-line 8, :line 6}
+    (t/is (= {:column 9, :end-column 11, :end-line 8, :line 6}
              (line 6) (line 7) (line 8)))
     (t/is (nil? (line 9)))
     (t/is (= {:column 1, :end-column 10, :end-line 10, :line 10}

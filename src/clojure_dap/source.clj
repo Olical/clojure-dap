@@ -33,12 +33,16 @@
 
   The line number is not relative, it starts from the first line of the file."
   [{:keys [position input line]}]
-  (when-let [{start-line :line, end-line :end-line} position]
+  (when-let [{start-line :line, end-line :end-line
+              start-column :column, end-column :end-column}
+             position]
     (with-open [r (io/reader input)]
       (let [length (inc (- end-line start-line))
             source-lines (->> (line-seq r)
                               (drop (dec start-line))
                               (take length)
                               (vec))]
-        (->> (update source-lines (- line start-line) #(str "#break " %))
-             (str/join "\n"))))))
+        (-> (update source-lines (- line start-line) #(str "#break " %))
+            (update 0 subs (dec start-column))
+            (update (dec (count source-lines)) subs 0 (dec end-column))
+            (->> (str/join "\n")))))))
