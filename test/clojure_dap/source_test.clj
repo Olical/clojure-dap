@@ -1,5 +1,6 @@
 (ns clojure-dap.source-test
   (:require [clojure.test :as t]
+            [clojure.java.io :as io]
             [clojure-dap.source :as source]))
 
 (def example-code "(ns foo)
@@ -15,7 +16,7 @@
 
 (defn line [n]
   (source/find-form-at-line
-   {:input (char-array example-code)
+   {:reader (io/reader (char-array example-code))
     :line n}))
 
 (t/deftest find-form-at-line
@@ -38,11 +39,11 @@
     (t/is (= "(defn some-fn [a]\n#break   (print \"hi\")\n  (inc a))"
              (source/insert-break-at-line
               {:position (line 7)
-               :input (char-array example-code)
+               :reader (io/reader (char-array example-code))
                :line 7})))
 
     (t/is (= nil
              (source/insert-break-at-line
               {:position nil
-               :input (char-array example-code)
+               :reader (io/reader (char-array example-code))
                :line 7})))))
