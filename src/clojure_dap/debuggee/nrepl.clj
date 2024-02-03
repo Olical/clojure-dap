@@ -18,12 +18,12 @@
       (-> (keep
            (fn [{:keys [line] :as breakpoint}]
              (when-let [position (source/find-form-at-line
-                                  {:input source
+                                  {:source source
                                    :line line})]
                (let [instrumented-source
                      (source/insert-break-at-line
                       {:position position
-                       :input (io/reader (char-array source))
+                       :source source
                        :line line})
                      result
                      (nrepl/combine-responses
