@@ -7,33 +7,42 @@
             [nrepl.core :as nrepl]
             [de.otto.nom.core :as nom]
             [malli.experimental :as mx]
+            [clojure-dap.source :as source]
             [clojure-dap.schema :as schema]
             [clojure-dap.debuggee :as debuggee]))
 
 (defn set-breakpoints [this {:keys [source breakpoints]}]
   (nom/try-nom
-    (let [path (:path source)
-          source-lines (vec (str/split-lines (slurp path)))
-          instrumented-source
-          (->> (reduce
-                (fn [source-lines {:keys [line]}]
-                  (update source-lines (dec line) #(str "#break " %)))
-                source-lines
-                breakpoints)
-               (str/join "\n"))]
-      (log/debug
-       "set-breakpoints eval result"
-       (nrepl/combine-responses
-        (nrepl/message
-         (get-in this [:connection :client])
-         {:op "eval"
-          :file path
-          :code instrumented-source}))))
-    {:breakpoints
-     (mapv
-      (fn [breakpoint]
-        (assoc breakpoint :verified true))
-      breakpoints)}))
+    (let [{:keys [path]} source
+          source (slurp path)]
+      (-> (keep
+           (fn [{:keys [line] :as breakpoint}]
+             (when-let [position (source/find-form-at-line
+                                  {:input source
+                                   :line line})]
+               (let [instrumented-source
+                     (source/insert-break-at-line
+                      {:position position
+                       :input (io/reader (char-array source))
+                       :line line})
+                     result
+                     (nrepl/combine-responses
+                      (nrepl/message
+                       (get-in this [:connection :client])
+                       {:op "eval"
+                        :file path
+                        :line (:line position)
+                        ;; :ns TODO
+                        :column (:column position)
+                        :code instrumented-source}))]
+                 (log/debug "Set breakpoint" breakpoint "result:" result)
+                 (assoc
+                  breakpoint :verified
+                  (= #{:done} (:status result))))))
+           breakpoints)
+          (vec)
+          (as-> breakpoints
+                {:breakpoints breakpoints})))))
 
 (defn evaluate [this {:keys [expression]}]
   (nom/try-nom
