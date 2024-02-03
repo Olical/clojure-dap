@@ -94,3 +94,20 @@
               {:position nil
                :source example-code
                :line 7})))))
+
+(t/deftest insert-breakpoints
+  (t/testing "inserts breakpoints at each of the given lines"
+    (t/is (= "#break (ns foo)\n\n10\n:foo-bar\n\n#break :before (defn some-fn [a]\n  (print \"hi\")\n  (inc a)) :after\n\n#break (+ 10 20)\n\n#break {::something/invalid 10\n ::another 20}"
+             (source/insert-breakpoints
+              {:source example-code
+               :breakpoints [{:line 1}
+                             {:line 6}
+                             {:line 10}
+                             {:line 12}]}))))
+
+  (t/testing "anything out of bounds just isn't inserted"
+    (t/is (= example-code
+             (source/insert-breakpoints
+              {:source example-code
+               :breakpoints [{:line 0}
+                             {:line 100}]})))))

@@ -77,3 +77,17 @@
     :lines-fn
     (fn [lines]
       (update lines (- line (:line position)) #(str "#break " %)))}))
+
+(defn insert-breakpoints
+  "Given a source string and a seq of breakpoints, inserts #break statements at the start of each of those lines. If the breakpoint is out of bounds, it's ignored. Lines start at 1."
+  [{:keys [source breakpoints]}]
+  (str/join
+   "\n"
+   (reduce
+    (fn [source-lines {:keys [line]}]
+      (let [idx (dec line)]
+        (cond-> source-lines
+          (contains? source-lines idx)
+          (update idx #(str "#break " %)))))
+    (str/split-lines source)
+    breakpoints)))
