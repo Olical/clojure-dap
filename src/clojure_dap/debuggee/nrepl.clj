@@ -7,66 +7,45 @@
             [nrepl.core :as nrepl]
             [de.otto.nom.core :as nom]
             [malli.experimental :as mx]
-            [clojure-dap.source :as source]
             [clojure-dap.schema :as schema]
+            [clojure-dap.source :as source]
             [clojure-dap.debuggee :as debuggee]))
 
 (defn set-breakpoints [this {:keys [source breakpoints]}]
   (nom/try-nom
-    (let [{:keys [path]} source
+    (let [path (:path source)
           source (slurp path)
-          client (get-in this [:connection :client])]
-      (-> (keep
-           (fn [{:keys [line] :as breakpoint}]
-             (when-let [position (source/find-form-at-line
-                                  {:source source
-                                   :line line})]
-               (let [instrumented-source
-                     (source/insert-break-at-line
-                      {:position position
-                       :source source
-                       :line line})
-
-                     ns-result
-                     (nrepl/combine-responses
-                      (nrepl/message
-                       client
-                       {:op "eval"
-                        :file path
-                        :code (source/extract-position
-                               {:position (source/find-ns-form source)
-                                :source source})}))
-
-                     result
-                     (nrepl/combine-responses
-                      (nrepl/message
-                       client
-                       {:op "eval"
-                        :file path
-                        :line (:line position)
-                        :ns (:ns ns-result)
-                        :column (:column position)
-                        :code instrumented-source}))]
-
-                 (log/debug
-                  "set-breakpoints results"
-                  {:called-with {:op "eval"
-                                 :file path
-                                 :line (:line position)
-                                 :ns (:ns ns-result)
-                                 :column (:column position)
-                                 :code instrumented-source}
-                   :breakpoint breakpoint
-                   :ns-result ns-result
-                   :result result})
-
-                 (assoc
-                  breakpoint :verified
-                  (= #{"done"} (:status result))))))
-           breakpoints)
-          (vec)
-          (as-> breakpoints
-                {:breakpoints breakpoints})))))
+          client (get-in this [:connection :client])
+          instrumented-source (source/insert-breakpoints
+                               {:source source
+                                :breakpoints breakpoints})
+          forms (source/read-all-forms instrumented-source)
+          results
+          (reduce
+           (fn [results form]
+             (let [prev-ns (:ns (last results))]
+               (conj
+                results
+                (nrepl/combine-responses
+                 (nrepl/message
+                  client
+                  (cond->
+                   {;; TODO positions
+                    :op "eval"
+                    :file path
+                    :code form}
+                    prev-ns (assoc :ns prev-ns)))))))
+           []
+           forms)]
+      (log/debug
+       "set-breakpoints results"
+       {:instrumented-source instrumented-source
+        :result results})
+      {:breakpoints
+       (mapv
+        (fn [breakpoint]
+          (assoc breakpoint :verified true))
+        breakpoints)})))
 
 (defn evaluate [this {:keys [expression]}]
   (nom/try-nom
