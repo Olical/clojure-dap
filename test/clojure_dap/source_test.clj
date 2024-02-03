@@ -16,7 +16,7 @@
 
 (defn line [n]
   (source/find-form-at-line
-   {:reader (io/reader (char-array example-code))
+   {:input example-code
     :line n}))
 
 (t/deftest find-form-at-line
@@ -39,11 +39,11 @@
     (t/is (= "(defn some-fn [a]\n#break   (print \"hi\")\n  (inc a))"
              (source/insert-break-at-line
               {:position (line 7)
-               :reader (io/reader (char-array example-code))
+               :input (io/reader (char-array example-code))
                :line 7})))
 
     (t/is (= nil
              (source/insert-break-at-line
               {:position nil
-               :reader (io/reader (char-array example-code))
+               :input (io/reader (char-array example-code))
                :line 7})))))
