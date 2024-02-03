@@ -43,7 +43,7 @@
                             (take length)
                             (vec))]
 
-      (-> (update source-lines (- line start-line) #(str "#break " %))
-          (update 0 subs (dec start-column))
+      (-> (update source-lines 0 subs (dec start-column))
           (update (dec (count source-lines)) subs 0 (dec end-column))
+          (update (- line start-line) #(str "#break " %))
           (->> (str/join "\n"))))))

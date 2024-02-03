@@ -42,6 +42,24 @@
                :input (io/reader (char-array example-code))
                :line 7})))
 
+    (t/is (= "#break (defn some-fn [a]\n  (print \"hi\")\n  (inc a))"
+             (source/insert-break-at-line
+              {:position (line 6)
+               :input (io/reader (char-array example-code))
+               :line 6})))
+
+    (t/is (= "#break (ns foo)"
+             (source/insert-break-at-line
+              {:position (line 1)
+               :input (io/reader (char-array example-code))
+               :line 1})))
+
+    (t/is (= "#break (+ 10 20)"
+             (source/insert-break-at-line
+              {:position (line 10)
+               :input (io/reader (char-array example-code))
+               :line 10})))
+
     (t/is (= nil
              (source/insert-break-at-line
               {:position nil
