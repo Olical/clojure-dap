@@ -22,7 +22,7 @@
           forms (source/read-all-forms instrumented-source)
           results
           (reduce
-           (fn [results form]
+           (fn [results {:keys [form position]}]
              (let [prev-ns (:ns (last results))]
                (conj
                 results
@@ -30,10 +30,11 @@
                  (nrepl/message
                   client
                   (cond->
-                   {;; TODO positions
-                    :op "eval"
+                   {:op "eval"
                     :file path
-                    :code form}
+                    :code form
+                    :line (:line position)
+                    :column (:column position)}
                     prev-ns (assoc :ns prev-ns)))))))
            []
            forms)]

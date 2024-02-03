@@ -63,7 +63,8 @@
                (if position
                  (conj
                   forms
-                  (extract-position
-                   {:source source
-                    :position position}))
+                  {:form (extract-position
+                          {:source source
+                           :position position})
+                   :position position})
                  forms)))))))))
