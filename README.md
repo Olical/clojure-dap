@@ -72,7 +72,7 @@ Useful links for development:
 - [ ] RestartFrame
 - [ ] ReverseContinue
 - [ ] Scopes
-- [ ] SetBreakpoints
+- [x] SetBreakpoints
 - [ ] SetDataBreakpoints
 - [ ] SetExceptionBreakpoints
 - [ ] SetExpression
