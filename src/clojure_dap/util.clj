@@ -32,11 +32,11 @@
        x))
    m))
 
-(defn clean-ansi
+(mx/defn clean-ansi :- :string
   "Removes ansi escape sequences from a string.
 
   https://choomnuan.com/posts-output/2019-09-01-remove-ansi-escape-sequences-in-clojure/"
-  [s]
+  [s :- :string]
   (str/join (map last (ansi/text->hiccup s))))
 
 (defn malli-reporter
@@ -47,9 +47,9 @@
       (let [message (with-out-str (report type data))]
         (throw (ex-info (clean-ansi message) {:type type :data data}))))))
 
-(defn safe-meta
+(mx/defn safe-meta :- [:maybe :map]
   "Returns meta for the given item if it implements IMeta, nil otherwise."
-  [x]
+  [x :- :any]
   (if (instance? clojure.lang.IMeta x)
     (meta x)
     nil))
