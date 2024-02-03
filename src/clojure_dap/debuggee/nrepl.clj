@@ -14,7 +14,8 @@
 (defn set-breakpoints [this {:keys [source breakpoints]}]
   (nom/try-nom
     (let [{:keys [path]} source
-          source (slurp path)]
+          source (slurp path)
+          client (get-in this [:connection :client])]
       (-> (keep
            (fn [{:keys [line] :as breakpoint}]
              (when-let [position (source/find-form-at-line
@@ -25,20 +26,43 @@
                       {:position position
                        :source source
                        :line line})
+
+                     ns-result
+                     (nrepl/combine-responses
+                      (nrepl/message
+                       client
+                       {:op "eval"
+                        :file path
+                        :code (source/extract-position
+                               {:position (source/find-ns-form source)
+                                :source source})}))
+
                      result
                      (nrepl/combine-responses
                       (nrepl/message
-                       (get-in this [:connection :client])
+                       client
                        {:op "eval"
                         :file path
                         :line (:line position)
-                        ;; :ns TODO
+                        :ns (:ns ns-result)
                         :column (:column position)
                         :code instrumented-source}))]
-                 (log/debug "Set breakpoint" breakpoint "result:" result)
+
+                 (log/debug
+                  "set-breakpoints results"
+                  {:called-with {:op "eval"
+                                 :file path
+                                 :line (:line position)
+                                 :ns (:ns ns-result)
+                                 :column (:column position)
+                                 :code instrumented-source}
+                   :breakpoint breakpoint
+                   :ns-result ns-result
+                   :result result})
+
                  (assoc
                   breakpoint :verified
-                  (= #{:done} (:status result))))))
+                  (= #{"done"} (:status result))))))
            breakpoints)
           (vec)
           (as-> breakpoints
