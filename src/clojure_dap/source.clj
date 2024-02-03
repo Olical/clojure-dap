@@ -4,11 +4,16 @@
             [clojure.java.io :as io]
             [clojure.tools.reader :as r]
             [clojure.tools.reader.reader-types :as rt]
+            [malli.experimental :as mx]
+            [clojure-dap.schema :as schema]
             [clojure-dap.util :as util]))
 
-(defn insert-breakpoints
+(mx/defn insert-breakpoints :- :string
   "Given a source string and a seq of breakpoints, inserts #break statements at the start of each of those lines. If the breakpoint is out of bounds, it's ignored. Lines start at 1."
-  [{:keys [source breakpoints]}]
+  [{:keys [source breakpoints]}
+   :- [:map
+       [:source :string]
+       [:breakpoints [:vector [:map [:line :int]]]]]]
   (str/join
    "\n"
    (reduce
@@ -20,9 +25,19 @@
     (str/split-lines source)
     breakpoints)))
 
-(defn extract-position
+(schema/define! ::position
+  [:map
+   [:line :int]
+   [:column :int]
+   [:end-line :int]
+   [:end-column :int]])
+
+(mx/defn extract-position :- :string
   "Given a source string and position, extracts the string from the source denoted by the position and returns it."
-  [{:keys [source position]}]
+  [{:keys [source position]}
+   :- [:map
+       [:source :string]
+       [:position ::position]]]
   (when position
     (let [{start-line :line
            end-line :end-line
@@ -44,9 +59,12 @@
                  (dec start-column)
                  (dec end-column)))))))
 
-(defn read-all-forms
+(mx/defn read-all-forms :- [:vector
+                            [:map
+                             [:form :string]
+                             [:position ::position]]]
   "Reads all the forms from the given source string."
-  [source]
+  [source :- :string]
   (binding [r/*read-eval* false
             r/*alias-map* identity
             r/*default-data-reader-fn* (fn [_tag value] value)]
