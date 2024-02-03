@@ -55,11 +55,13 @@
     (t/is (= ["(ns foo)"
               "(defn some-fn [a]\n#break   (print \"hi\")\n#break   (inc a))"
               "(+ 10 20)"
-              "{::something/invalid 10\n ::another 20}"]
+              "{::something/invalid 10\n#break  ::another 20}"]
              (source/read-all-forms
               (source/insert-breakpoints
                {:source example-code
                 :breakpoints [{:line 1}
                               {:line 7}
                               {:line 8}
-                              {:line 12}]}))))))
+                              {:line 12}
+                              {:line 13}
+                              {:line 14}]}))))))
