@@ -14,16 +14,18 @@
 
   Returns nil if we don't find anything or if the thing we found lacks positional metadata."
   [{:keys [input line]}]
-  (let [reader (rt/indexing-push-back-reader input)]
-    (loop []
-      (when-let [form (r/read read-opts reader)]
-        (let [{start-line :line
-               end-line :end-line
-               :as location}
-              (util/safe-meta form)]
-          (if (and location (<= start-line line end-line))
-            location
-            (recur)))))))
+  (binding [r/*read-eval* false
+            r/*alias-map* identity]
+    (let [reader (rt/indexing-push-back-reader input)]
+      (loop []
+        (when-let [form (r/read read-opts reader)]
+          (let [{start-line :line
+                 end-line :end-line
+                 :as location}
+                (util/safe-meta form)]
+            (if (and location (<= start-line line end-line))
+              location
+              (recur))))))))
 
 (defn insert-break-at-line
   "Given a position (from find-form-at-line), input reader and line number, will parse out the form at the position, insert a #break statement at the line and return it.

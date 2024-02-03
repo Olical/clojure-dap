@@ -12,7 +12,10 @@
   (print \"hi\")
   (inc a)) :after
 
-(+ 10 20)")
+(+ 10 20)
+
+{::something/invalid 10
+ ::another 20}")
 
 (defn line [n]
   (source/find-form-at-line
@@ -32,7 +35,10 @@
     (t/is (nil? (line 9)))
     (t/is (= {:column 1, :end-column 10, :end-line 10, :line 10}
              (line 10)))
-    (t/is (nil? (line 11)))))
+    (t/is (nil? (line 11)))
+    (t/is (= {:line 12, :column 1, :end-line 13, :end-column 15}
+             (line 12) (line 13)))
+    (t/is (nil? (line 14)))))
 
 (t/deftest insert-break-at-line
   (t/testing "inserts a #break statement at the start of the given line in the source string"
@@ -59,6 +65,18 @@
               {:position (line 10)
                :input (io/reader (char-array example-code))
                :line 10})))
+
+    (t/is (= "#break {::something/invalid 10\n ::another 20}"
+             (source/insert-break-at-line
+              {:position (line 12)
+               :input (io/reader (char-array example-code))
+               :line 12})))
+
+    (t/is (= "{::something/invalid 10\n#break  ::another 20}"
+             (source/insert-break-at-line
+              {:position (line 13)
+               :input (io/reader (char-array example-code))
+               :line 13})))
 
     (t/is (= nil
              (source/insert-break-at-line
