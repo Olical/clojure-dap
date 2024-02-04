@@ -7,6 +7,7 @@
             [nrepl.core :as nrepl]
             [de.otto.nom.core :as nom]
             [malli.experimental :as mx]
+            [clojure-dap.util :as util]
             [clojure-dap.schema :as schema]
             [clojure-dap.source :as source]
             [clojure-dap.debuggee :as debuggee]))
@@ -67,15 +68,13 @@
    [:host {:optional true} :string]
    [:port {:optional true} pos-int?]
    [:port-file-name {:optional true} :string]
-   [:root-dir {:optional true} :string]
-   [:response-timeout-ms {:optional true} pos-int?]])
+   [:root-dir {:optional true} :string]])
 
 (mx/defn create :- (schema/result ::debuggee/debuggee)
-  [{:keys [host port port-file-name root-dir response-timeout-ms]
+  [{:keys [host port port-file-name root-dir]
     :or {host "127.0.0.1"
          port-file-name ".nrepl-port"
-         root-dir "."
-         response-timeout-ms 1000}} :- ::create-opts]
+         root-dir "."}} :- ::create-opts]
   (nom/try-nom
     (let [port (or port
                    (let [f (io/file root-dir port-file-name)]
@@ -84,12 +83,18 @@
           transport (nrepl/connect
                      {:host host
                       :port port})
-          raw-client (nrepl/client transport response-timeout-ms)
+          raw-client (nrepl/client transport Long/MAX_VALUE)
           client (nrepl/client-session
                   raw-client
                   {:session (nrepl/new-session raw-client)})]
 
-      (nrepl/message client {:op "init-debugger"})
+      (util/with-thread ::init-debugger
+        (log/info "Sending init-debugger")
+        (run!
+         (fn [message]
+           (log/info "init-debugger output" message))
+         (nrepl/message client {:op "init-debugger"}))
+        (log/info "init-debugger ended!"))
 
       {:connection {:transport transport
                     :client client}
