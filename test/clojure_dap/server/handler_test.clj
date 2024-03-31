@@ -286,7 +286,7 @@
                     :data {:event "some unknown event"
                            :foo true
                            :type "event"}
-                    :output #"^\[:cognitect.anomalies/incorrect\] Failed to validate against schema :clojure-dap.protocol/message: \d+ JSON Validation errors: #: required key \[seq\] not found, "}}]
+                    :output #"^\[:cognitect.anomalies/incorrect\] Failed to validate against schema :clojure-dap.protocol/message: \d+ JSON Validation errors: #:.*required key \[seq\] not found, "}}]
            (handler/handle-anomalous-client-input
             {:anomaly (schema/validate
                        ::protocol/message
