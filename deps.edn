@@ -1,35 +1,35 @@
 {:paths ["src" "test" "resources"]
  :deps
- {org.clojure/clojure {:mvn/version "1.11.1"}
-  org.clojure/core.match {:mvn/version "1.0.1"}
-  manifold/manifold {:mvn/version "0.4.1"}
+ {org.clojure/clojure {:mvn/version "1.11.2"}
+  org.clojure/core.match {:mvn/version "1.1.0"}
+  manifold/manifold {:mvn/version "0.4.2"}
   me.raynes/fs {:mvn/version "1.4.6"}
-  nrepl/nrepl {:mvn/version "1.1.0"}
+  nrepl/nrepl {:mvn/version "1.1.1"}
   metosin/jsonista {:mvn/version "0.3.8"}
   camel-snake-kebab/camel-snake-kebab {:mvn/version "0.4.3"}
   tortue/spy {:mvn/version "2.14.0"}
   lambdaisland/ansi {:mvn/version "0.2.37"}
 
-  com.taoensso/timbre {:mvn/version "6.3.1"}
+  com.taoensso/timbre {:mvn/version "6.5.0"}
 
   ;; Ensure all logging flows through Timbre.
   com.fzakaria/slf4j-timbre {:mvn/version "0.4.1"}
-  org.slf4j/log4j-over-slf4j {:mvn/version "2.0.10"}
-  org.slf4j/jul-to-slf4j {:mvn/version "2.0.10"}
-  org.slf4j/jcl-over-slf4j {:mvn/version "2.0.10"}
+  org.slf4j/log4j-over-slf4j {:mvn/version "2.0.12"}
+  org.slf4j/jul-to-slf4j {:mvn/version "2.0.12"}
+  org.slf4j/jcl-over-slf4j {:mvn/version "2.0.12"}
 
   com.cognitect/anomalies {:mvn/version "0.1.12"}
   de.otto/nom {:mvn/version "0.3.0"}
-  luposlip/json-schema {:mvn/version "0.4.2"}
-  metosin/malli {:mvn/version "0.13.0"}}
+  luposlip/json-schema {:mvn/version "0.4.3"}
+  metosin/malli {:mvn/version "0.15.0"}}
 
  :aliases
- {:test {:extra-deps {lambdaisland/kaocha {:mvn/version "1.87.1366"}
-                      nubank/matcher-combinators {:mvn/version "3.8.8"}}
+ {:test {:extra-deps {lambdaisland/kaocha {:mvn/version "1.88.1376"}
+                      nubank/matcher-combinators {:mvn/version "3.9.1"}}
          :main-opts ["-m" "kaocha.runner"]}
-  :repl {:extra-deps {cider/cider-nrepl {:mvn/version "0.44.0"}
+  :repl {:extra-deps {cider/cider-nrepl {:mvn/version "0.47.1"}
                       com.bhauman/rebel-readline {:mvn/version "0.1.4"}}}
-  :outdated {:deps {com.github.liquidz/antq {:mvn/version "2.8.1169"}}
+  :outdated {:deps {com.github.liquidz/antq {:mvn/version "2.8.1185"}}
              :main-opts ["-m" "antq.core"]}
   :format {:deps {dev.weavejester/cljfmt {:mvn/version "0.12.0"}}
            :main-opts ["-m" "cljfmt.main" "fix"]}}
