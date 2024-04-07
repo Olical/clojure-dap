@@ -25,25 +25,23 @@
    :- [:map
        [:input-stream [:fn s/stream?]]
        [:output-stream [:fn s/stream?]]]]
-  (let [next-seq (auto-seq)
-        debuggee! (atom ::no-debuggee)]
+  (let [debuggee! (atom ::no-debuggee)]
     (s/connect-via
      input-stream
      (fn [input]
        (->> (try
               (if (nom/anomaly? input)
                 (handler/handle-anomalous-client-input
-                 {:anomaly input
-                  :next-seq next-seq})
+                 {:anomaly input})
                 (handler/handle-client-input
                  {:input input
-                  :next-seq next-seq
+                  :output-stream output-stream
                   :debuggee! debuggee!}))
               (catch Throwable e
                 (log/error e "Failed to handle client input")
-                [{:seq (next-seq)
-                  :request_seq (:seq input)
+                [{:request_seq (:seq input)
                   :type "response"
+                  :seq protocol/seq-placeholder
                   :command (:command input)
                   :success false
                   :message (str "Error while handling input\n" (ex-message e))}]))
@@ -68,7 +66,8 @@
   (let [input-byte-stream (s/stream)
         input-message-stream (s/stream)
         output-stream (s/stream)
-        anomalies-stream (s/stream)]
+        anomalies-stream (s/stream)
+        next-seq (auto-seq)]
 
     (s/on-closed output-stream #(s/close! anomalies-stream))
 
@@ -86,7 +85,7 @@
                     output-stream
                     (fn [message]
                       (log/trace "SEND" message)
-                      (protocol/render-message message))
+                      (protocol/render-message (assoc message :seq (next-seq))))
                     anomalies-stream)
            :writer output-writer}))
 

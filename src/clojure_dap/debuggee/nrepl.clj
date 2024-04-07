@@ -7,6 +7,8 @@
             [nrepl.core :as nrepl]
             [de.otto.nom.core :as nom]
             [malli.experimental :as mx]
+            [manifold.stream :as s]
+            [clojure-dap.protocol :as protocol]
             [clojure-dap.util :as util]
             [clojure-dap.schema :as schema]
             [clojure-dap.source :as source]
@@ -62,6 +64,38 @@
                     (some result #{:out :err :value})))
             (str/join))})))
 
+(comment
+  ;; Example from the init-debugger message
+  {:debug-value "30",
+   :original-ns "clojure-dap.main",
+   :key "cc2448d9-4858-4199-8536-dba04c491131",
+   :locals [["a" "10"] ["b" "20"]],
+   :file "/home/olical/repos/Olical/clojure-dap/src/clojure_dap/main.clj",
+   :column 1,
+   :input-type ["continue" "locals" "inspect" "trace" "here" "continue-all" "next" "out" "inject" "stacktrace" "inspect-prompt" "quit" "in" "eval"],
+   :prompt [],
+   :coor [3],
+   :line 13,
+   :status ["need-debug-input"],
+   :id "40e61455-0430-45b5-800c-d8bff1faef9b",
+   :code "(defn foo [a b]\\n#break   (+ a b))",
+   :original-id "ba89be97-bfff-4984-bf16-6718ac10a0cd",
+   :session "4ee25650-d4dd-4be0-aaa3-ba832562f5e9"})
+
+;; TODO Add threadId or all threads stopped here
+(mx/defn nrepl-message->events :- [:sequential ::protocol/message]
+  "Takes an nREPL message (such as need-debug-input) and turns it into DAP events we would like to send to the development tool."
+  [{:keys [status]
+    :as _message}
+   :- [:map [:status [:vector :string]]]]
+  (let [status (set (map keyword status))]
+    (if (:need-debug-input status)
+      [{:type "event"
+        :event "stopped"
+        :seq protocol/seq-placeholder
+        :body {:reason "breakpoint"}}]
+      [])))
+
 (schema/define!
   ::create-opts
   [:map
@@ -70,11 +104,17 @@
    [:port-file-name {:optional true} :string]
    [:root-dir {:optional true} :string]])
 
+(schema/define!
+  ::extra-opts
+  [:map
+   [:output-stream [:fn s/stream?]]])
+
 (mx/defn create :- (schema/result ::debuggee/debuggee)
   [{:keys [host port port-file-name root-dir]
     :or {host "127.0.0.1"
          port-file-name ".nrepl-port"
-         root-dir "."}} :- ::create-opts]
+         root-dir "."}} :- ::create-opts
+   {:keys [output-stream]} :- ::extra-opts]
   (nom/try-nom
     (let [port (or port
                    (let [f (io/file root-dir port-file-name)]
@@ -92,11 +132,13 @@
         (log/info "Sending init-debugger")
         (run!
          (fn [message]
-           (log/info "init-debugger output" message))
+           (log/info "init-debugger output" message)
+           (s/put-all! output-stream (nrepl-message->events message)))
          (nrepl/message client {:op "init-debugger"}))
         (log/info "init-debugger ended!"))
 
       {:connection {:transport transport
                     :client client}
        :set-breakpoints set-breakpoints
+       :output-stream (s/stream)
        :evaluate evaluate})))

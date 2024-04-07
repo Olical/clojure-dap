@@ -12,6 +12,10 @@
 (def header-sep "\r\n")
 (def double-header-sep (str header-sep header-sep))
 
+(def seq-placeholder
+  "This is set automatically when rendering messages. We use a placeholder to pass schema validation."
+  -1)
+
 (def supported-messages
   [::initialize-request
    ::initialize-response
@@ -37,6 +41,7 @@
 
    ::output-event
    ::exited-event
+   ::stopped-event
    ::terminated-event])
 
 (schema/define! ::message

@@ -37,14 +37,16 @@
       (t/is (= [{:body handler/initialised-response-body
                  :command "initialize"
                  :request_seq 1
-                 :seq 1
+                 :seq protocol/seq-placeholder
                  :success true
                  :type "response"}
-                {:event "initialized", :seq 2, :type "event"}
+                {:event "initialized"
+                 :seq protocol/seq-placeholder
+                 :type "event"}
                 {:body {}
                  :command "attach"
                  :request_seq 2
-                 :seq 3
+                 :seq protocol/seq-placeholder
                  :success true
                  :type "response"}]
                (vec (s/stream->seq output-stream))))))
@@ -68,7 +70,7 @@
        {:input-stream input-stream
         :output-stream output-stream})
       (t/is (match?
-             [{:seq 1
+             [{:seq protocol/seq-placeholder
                :request_seq 1
                :type "response"
                :command "initializor"
@@ -76,7 +78,7 @@
                :message #"Error while handling input"}
               {:type "event"
                :event "output"
-               :seq 2
+               :seq protocol/seq-placeholder
                :body
                {:category "important"
                 :output #"Failed to validate against schema :clojure-dap.protocol/message: "

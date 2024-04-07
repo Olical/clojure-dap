@@ -3,6 +3,7 @@
   (:require [de.otto.nom.core :as nom]
             [malli.experimental :as mx]
             [spy.core :as spy]
+            [manifold.stream :as s]
             [clojure-dap.schema :as schema]
             [clojure-dap.debuggee :as debuggee]))
 
@@ -39,5 +40,6 @@
     (nom/fail ::oh-no {:message "Creation failed!"})
     {:fail? fail?
      :socket-exception? socket-exception?
+     :output-stream (s/stream)
      :set-breakpoints (spy/spy set-breakpoints)
      :evaluate (spy/spy evaluate)}))
