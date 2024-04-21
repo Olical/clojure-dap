@@ -88,8 +88,9 @@
           {:stream (stream/partition-anomalies
                     output-stream
                     (fn [message]
-                      (log/trace "SEND" message)
-                      (protocol/render-message (assoc message :seq (next-seq))))
+                      (let [message (assoc message :seq (next-seq))]
+                        (log/trace "SEND" message)
+                        (protocol/render-message message)))
                     anomalies-stream)
            :writer output-writer}))
 
