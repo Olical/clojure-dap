@@ -69,7 +69,11 @@
         anomalies-stream (s/stream)
         next-seq (auto-seq)]
 
-    (s/on-closed output-stream #(s/close! anomalies-stream))
+    (s/on-closed
+     output-stream
+     (fn []
+       (log/info "output-stream closed, closing anomalies-stream")
+       (s/close! anomalies-stream)))
 
     {:anomalies-stream anomalies-stream
      :server-complete
