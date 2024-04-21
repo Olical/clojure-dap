@@ -143,13 +143,12 @@
                   {:session (nrepl/new-session raw-client)})]
 
       (util/with-thread ::init-debugger
-        (log/info "Sending init-debugger")
-        (run!
-         (fn [message]
-           (log/info "init-debugger output" message)
-           (s/put-all! output-stream (handle-init-debugger-output message)))
-         (nrepl/message client {:op "init-debugger"}))
-        (log/info "init-debugger ended!"))
+        @(s/connect-via
+          (s/->source (nrepl/message client {:op "init-debugger"}))
+          (fn [message]
+            (log/info "init-debugger output" message)
+            (s/put-all! output-stream (handle-init-debugger-output message)))
+          output-stream))
 
       {:connection {:transport transport
                     :client client}
