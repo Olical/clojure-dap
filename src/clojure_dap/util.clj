@@ -17,9 +17,12 @@
 
   `(d/future
      (try
-       ~@body
+       (log/trace "Starting thread" ~thread-name)
+       (let [result# (do ~@body)]
+         (log/trace "End of thread" ~thread-name "- returning:" result#)
+         result#)
        (catch Throwable t#
-         (log/error t# "Caught error in thread" ~thread-name)
+         (log/error t# "End of thread" ~thread-name "- caught error")
          (throw t#)))))
 
 (mx/defn walk-sorted-map :- [:and [:fn sorted?] :map]

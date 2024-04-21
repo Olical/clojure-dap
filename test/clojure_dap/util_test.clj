@@ -15,7 +15,7 @@
 
   (t/testing "if the exception isn't pulled out, it logs"
     (t/is (re-find
-           #"Caught error in thread :clojure-dap.util-test/foo"
+           #"End of thread :clojure-dap.util-test/foo - caught error"
            (with-out-str
              (binding [*err* *out*]
                (try
