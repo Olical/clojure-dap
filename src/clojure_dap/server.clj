@@ -121,12 +121,9 @@
             (do
               (log/trace "Closing input-message-stream")
               (s/close! input-message-stream))
-            (let [_ (log/trace "BEFORE READ")
-                  message (stream/read-message input-char-stream)]
+            (let [message (stream/read-message input-char-stream)]
               (log/trace "RECV" message)
-              (log/trace input-message-stream)
               @(s/put! input-message-stream message)
-              (log/trace "AFTER READ")
               (recur)))))
 
       (run
