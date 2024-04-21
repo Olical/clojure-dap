@@ -1,7 +1,6 @@
 (ns clojure-dap.debuggee
   "Interface for talking to a debuggee through some debugger tooling. Geared towards nREPL / CIDER's debug suite for now but should be able to support Flow-storm at some point."
   (:require [malli.experimental :as mx]
-            [manifold.stream :as s]
             [clojure-dap.schema :as schema]
             [clojure-dap.protocol :as protocol]))
 
@@ -9,7 +8,7 @@
   [:map
    [:set-breakpoints [:fn fn?]]
    [:evaluate [:fn fn?]]
-   [:output-stream [:fn s/stream?]]])
+   [:threads [:fn fn?]]])
 
 (mx/defn set-breakpoints :- (schema/result ::protocol/message-ish)
   [this :- ::debuggee
@@ -23,3 +22,7 @@
    opts :- [:map
             [:expression :string]]]
   ((:evaluate this) this opts))
+
+(mx/defn threads :- (schema/result ::protocol/message-ish)
+  [this :- ::debuggee]
+  ((:threads this) this))

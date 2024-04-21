@@ -3,7 +3,6 @@
   (:require [de.otto.nom.core :as nom]
             [malli.experimental :as mx]
             [spy.core :as spy]
-            [manifold.stream :as s]
             [clojure-dap.schema :as schema]
             [clojure-dap.debuggee :as debuggee]))
 
@@ -27,6 +26,17 @@
 
     :else {:result ":fake-eval-result"}))
 
+(defn threads [this]
+  (cond
+    (:fail? this)
+    (nom/fail ::threads-failure {:detail "Oh no!"})
+
+    (:socket-exception? this)
+    (nom/fail ::socket-exception {:exception (java.net.SocketException.)})
+
+    :else {:threads [{:id -1070493020
+                      :name "4ee25650-d4dd-4be0-aaa3-ba832562f5e9"}]}))
+
 (schema/define!
   ::create-opts
   [:map
@@ -40,6 +50,6 @@
     (nom/fail ::oh-no {:message "Creation failed!"})
     {:fail? fail?
      :socket-exception? socket-exception?
-     :output-stream (s/stream)
      :set-breakpoints (spy/spy set-breakpoints)
-     :evaluate (spy/spy evaluate)}))
+     :evaluate (spy/spy evaluate)
+     :threads (spy/spy threads)}))

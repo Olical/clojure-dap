@@ -73,6 +73,11 @@
                    :type "request"
                    :command "next"
                    :arguments {:threadId 3}}]
+      (t/is (= message (protocol/parse-message (json/write-value-as-string message)))))
+
+    (let [message {:seq 153
+                   :type "request"
+                   :command "threads"}]
       (t/is (= message (protocol/parse-message (json/write-value-as-string message))))))
 
   (t/testing "returns an anomaly if the message doesn't validate"

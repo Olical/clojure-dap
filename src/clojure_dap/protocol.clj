@@ -36,6 +36,9 @@
    ::evaluate-request
    ::evaluate-response
 
+   ::threads-request
+   ::threads-response
+
    ::configuration-done-request
    ::configuration-done-response
 

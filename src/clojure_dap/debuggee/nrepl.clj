@@ -64,6 +64,20 @@
                     (some result #{:out :err :value})))
             (str/join))})))
 
+(defn threads [this]
+  (nom/try-nom
+    (let [messages (nrepl/message
+                    (get-in this [:connection :client])
+                    {:op "ls-sessions"})
+          [{:keys [sessions]}] messages]
+      (log/debug "ls-sessions results" messages)
+      {:threads
+       (map
+        (fn [session-id]
+          {:id (hash session-id)
+           :name session-id})
+        sessions)})))
+
 (comment
   ;; Example from the init-debugger message
   {:debug-value "30",
@@ -82,19 +96,19 @@
    :original-id "ba89be97-bfff-4984-bf16-6718ac10a0cd",
    :session "4ee25650-d4dd-4be0-aaa3-ba832562f5e9"})
 
-;; TODO Add threadId or all threads stopped here
-(mx/defn nrepl-message->events :- [:sequential ::protocol/message]
-  "Takes an nREPL message (such as need-debug-input) and turns it into DAP events we would like to send to the development tool."
-  [{:keys [status]
+(mx/defn handle-init-debugger-output
+  :- [:maybe [:sequential ::protocol/message]]
+  "Takes an nREPL message from the init-debugger call (such as need-debug-input) and turns it into messages to send up to the DAP client."
+  [{:keys [status session]
     :as _message}
    :- [:map [:status [:vector :string]]]]
   (let [status (set (map keyword status))]
-    (if (:need-debug-input status)
+    (when (:need-debug-input status)
       [{:type "event"
         :event "stopped"
         :seq protocol/seq-placeholder
-        :body {:reason "breakpoint"}}]
-      [])))
+        :body {:reason "breakpoint"
+               :threadId (hash session)}}])))
 
 (schema/define!
   ::create-opts
@@ -133,12 +147,12 @@
         (run!
          (fn [message]
            (log/info "init-debugger output" message)
-           (s/put-all! output-stream (nrepl-message->events message)))
+           (s/put-all! output-stream (handle-init-debugger-output message)))
          (nrepl/message client {:op "init-debugger"}))
         (log/info "init-debugger ended!"))
 
       {:connection {:transport transport
                     :client client}
        :set-breakpoints set-breakpoints
-       :output-stream (s/stream)
-       :evaluate evaluate})))
+       :evaluate evaluate
+       :threads threads})))

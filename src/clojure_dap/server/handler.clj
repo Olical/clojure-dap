@@ -194,3 +194,12 @@
              {:variablesReference 0
               :result (:result res)}})]))
     [(resp missing-debuggee-warning)]))
+
+(defmethod handle-client-input* "threads"
+  [{:keys [debuggee resp _input] :as opts}]
+  (if debuggee
+    (let [res (debuggee/threads debuggee)]
+      (or (handle-anomaly res opts)
+          [(resp
+            {:body {:threads (:threads res)}})]))
+    [(resp missing-debuggee-warning)]))
