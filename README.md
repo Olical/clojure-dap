@@ -43,7 +43,7 @@ Useful links for development:
 - [ ] ProgressEnd
 - [ ] ProgressStart
 - [ ] ProgressUpdate
-- [ ] Stopped
+- [x] Stopped
 - [x] Terminated
 - [ ] Thread
 
@@ -87,7 +87,7 @@ Useful links for development:
 - [ ] StepOut
 - [ ] Terminate
 - [ ] TerminateThreads
-- [ ] Threads
+- [x] Threads
 - [ ] Variables
 - [ ] WriteMemory
 

@@ -21,33 +21,51 @@
   "Consumes messages from the input stream and writes the respones to the output stream. We work with Clojure data structures at this level of abstraction, another system should handle the encoding and decoding of DAP messages.
 
   Errors that occur in handle-client-input are fed into the output-stream as errors."
-  [{:keys [input-stream output-stream]}
+  [{:keys [input-stream output-stream async?]}
    :- [:map
        [:input-stream [:fn s/stream?]]
-       [:output-stream [:fn s/stream?]]]]
+       [:output-stream [:fn s/stream?]]
+       [:async? :boolean]]]
   (let [debuggee! (atom ::no-debuggee)]
-    (s/connect-via
-     input-stream
-     (fn [input]
-       (->> (try
-              (if (nom/anomaly? input)
-                (handler/handle-anomalous-client-input
-                 {:anomaly input})
-                (handler/handle-client-input
-                 {:input input
-                  :output-stream output-stream
-                  :debuggee! debuggee!}))
-              (catch Throwable e
-                (log/error e "Failed to handle client input")
-                [{:request_seq (:seq input)
-                  :type "response"
-                  :seq protocol/seq-placeholder
-                  :command (:command input)
-                  :success false
-                  :message (str "Error while handling input\n" (ex-message e))}]))
-            (s/put-all! output-stream)))
 
-     output-stream)))
+    (letfn [(handle [input]
+              (->> (try
+                     (if (nom/anomaly? input)
+                       (handler/handle-anomalous-client-input
+                        {:anomaly input})
+                       (handler/handle-client-input
+                        {:input input
+                         :output-stream output-stream
+                         :debuggee! debuggee!}))
+                     (catch Throwable e
+                       (log/error e "Failed to handle client input")
+                       [{:request_seq (:seq input)
+                         :type "response"
+                         :seq protocol/seq-placeholder
+                         :command (:command input)
+                         :success false
+                         :message (str "Error while handling input\n" (ex-message e))}]))
+                   (s/put-all! output-stream)))]
+      (s/connect-via
+       input-stream
+       (fn [input]
+         (if async?
+           (do
+             (d/future (handle input))
+             (doto (d/deferred)
+               (d/success! (not (s/closed? output-stream)))))
+           (handle input)))
+
+       output-stream))))
+
+(mx/defn byte-stream->char-stream :- [:fn s/stream?]
+  [byte-stream :- [:fn s/stream?]]
+  (s/mapcat
+   (fn [x]
+     (if (and (int? x) (>= x 0))
+       (list (char x))
+       (log/warn "Weird input byte, can't turn it into a character:" x)))
+   byte-stream))
 
 (mx/defn run-io-wrapped
   :- [:map
@@ -58,16 +76,19 @@
   Any anomalies from the client or the server are put into the anomalies-stream which is returned by this function.
 
   A deferred that waits for all threads and streams to complete is also returned. You can wait on that with deref until everything has drained and completed."
-  [{:keys [input-reader output-writer]}
+  [{:keys [input-reader output-writer async?]}
    :- [:map
        [:input-reader ::stream/reader]
-       [:output-writer ::stream/writer]]]
+       [:output-writer ::stream/writer]
+       [:async? :boolean]]]
 
-  (let [input-byte-stream (s/stream)
+  (let [next-seq (auto-seq)
+
+        input-byte-stream (s/stream)
         input-message-stream (s/stream)
         output-stream (s/stream)
         anomalies-stream (s/stream)
-        next-seq (auto-seq)]
+        input-char-stream (byte-stream->char-stream input-byte-stream)]
 
     (s/on-closed
      output-stream
@@ -95,21 +116,20 @@
            :writer output-writer}))
 
       (util/with-thread ::message-reader
-        (let [input-char-stream
-              (s/mapcat
-               (fn [x]
-                 (if (and (int? x) (>= x 0))
-                   [(char x)]
-                   (log/warn "Weird input byte, can't turn it into a character:" x)))
-               input-byte-stream)]
-          (loop []
-            (if (and (s/closed? input-byte-stream) (s/drained? input-byte-stream))
-              (s/close! input-message-stream)
-              (let [message (stream/read-message input-char-stream)]
-                (log/trace "RECV" message)
-                @(s/put! input-message-stream message)
-                (recur))))))
+        (loop []
+          (if (and (s/closed? input-byte-stream) (s/drained? input-byte-stream))
+            (do
+              (log/trace "Closing input-message-stream")
+              (s/close! input-message-stream))
+            (let [_ (log/trace "BEFORE READ")
+                  message (stream/read-message input-char-stream)]
+              (log/trace "RECV" message)
+              (log/trace input-message-stream)
+              @(s/put! input-message-stream message)
+              (log/trace "AFTER READ")
+              (recur)))))
 
       (run
        {:input-stream input-message-stream
-        :output-stream output-stream}))}))
+        :output-stream output-stream
+        :async? async?}))}))

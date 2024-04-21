@@ -33,7 +33,8 @@
       (s/close! input-stream)
       (server/run
        {:input-stream input-stream
-        :output-stream output-stream})
+        :output-stream output-stream
+        :async? false})
       (t/is (= [{:body handler/initialised-response-body
                  :command "initialize"
                  :request_seq 1
@@ -68,7 +69,8 @@
       (s/close! input-stream)
       (server/run
        {:input-stream input-stream
-        :output-stream output-stream})
+        :output-stream output-stream
+        :async? false})
       (t/is (match?
              [{:seq protocol/seq-placeholder
                :request_seq 1
@@ -103,7 +105,8 @@
       (s/close! output-stream)
       (server/run
        {:input-stream input-stream
-        :output-stream output-stream})
+        :output-stream output-stream
+        :async? false})
       (t/is (s/closed? input-stream))
       (t/is (s/drained? input-stream))
       (t/is (= [] (vec (s/stream->seq output-stream)))))))
@@ -128,7 +131,8 @@
             {:keys [server-complete anomalies-stream]}
             (server/run-io-wrapped
              {:input-reader input-reader
-              :output-writer output-writer})]
+              :output-writer output-writer
+              :async? false})]
 
         (s/consume #(swap! anomalies! conj %) anomalies-stream)
 
@@ -170,7 +174,8 @@
             {:keys [server-complete anomalies-stream]}
             (server/run-io-wrapped
              {:input-reader input-reader
-              :output-writer output-writer})]
+              :output-writer output-writer
+              :async? false})]
 
         (s/consume #(swap! anomalies! conj %) anomalies-stream)
 
