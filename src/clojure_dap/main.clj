@@ -2,6 +2,7 @@
   "Entrypoint for the actual program, handles starting of systems and CLI input."
   (:require [clojure.java.io :as io]
             [taoensso.timbre :as log]
+            [me.raynes.fs :as rfs]
             [taoensso.timbre.appenders.core :as appenders]
             [malli.experimental :as mx]
             [malli.instrument :as mi]
@@ -36,8 +37,7 @@
                 ;; TODO Make this cross platform and not conflict with other processes.
                 ;; And will we end up with multiple processes sharing the same file?
                 ;; Also nvim users sometimes move their cache dir, so we should write to our own maybe, or tmp.
-                ; :spit (appenders/spit-appender {:fname (str (rfs/expand-home "~/.cache/nvim/clojure-dap.log"))})
-                }
+                :spit (appenders/spit-appender {:fname (str (rfs/expand-home "~/.cache/nvim/clojure-dap.log"))})}
     :middleware [#(assoc % :hostname_ "-")]})
 
   (log/set-min-level! :trace)
