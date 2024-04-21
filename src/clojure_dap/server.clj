@@ -50,10 +50,10 @@
        input-stream
        (fn [input]
          (if async?
-           (do
+           (let [result! (d/deferred)]
              (d/future (handle input))
-             (doto (d/deferred)
-               (d/success! (not (s/closed? output-stream)))))
+             (d/success! result! (not (s/closed? output-stream)))
+             result!)
            (handle input)))
 
        output-stream))))
