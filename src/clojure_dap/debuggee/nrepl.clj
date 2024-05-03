@@ -64,6 +64,7 @@
                     (some result #{:out :err :value})))
             (str/join))})))
 
+;; TODO Don't treat sessions as threads, let's actually get the thread IDs.
 (defn threads [this]
   (nom/try-nom
     (let [messages (nrepl/message
@@ -77,6 +78,24 @@
           {:id (hash session-id)
            :name session-id})
         sessions)})))
+
+(defn stack-trace [this opts]
+  (nom/try-nom
+    (let [messages []]
+      (log/debug "stack-trace results" messages)
+      {:todo true})))
+
+(defn scopes [this opts]
+  (nom/try-nom
+    (let [messages []]
+      (log/debug "scopes results" messages)
+      {:todo true})))
+
+(defn variables [this opts]
+  (nom/try-nom
+    (let [messages []]
+      (log/debug "variables results" messages)
+      {:todo true})))
 
 (comment
   ;; Example from the init-debugger message
@@ -154,4 +173,5 @@
                     :client client}
        :set-breakpoints set-breakpoints
        :evaluate evaluate
-       :threads threads})))
+       :threads threads
+       :stack-trace stack-trace})))

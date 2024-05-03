@@ -53,3 +53,33 @@
      :set-breakpoints (spy/spy set-breakpoints)
      :evaluate (spy/spy evaluate)
      :threads (spy/spy threads)}))
+
+(defn stack-trace [this _opts]
+  (cond
+    (:fail? this)
+    (nom/fail ::stack-trace-failure {:detail "Oh no!"})
+
+    (:socket-exception? this)
+    (nom/fail ::socket-exception {:exception (java.net.SocketException.)})
+
+    :else {:todo true}))
+
+(defn scopes [this _opts]
+  (cond
+    (:fail? this)
+    (nom/fail ::scopes-failure {:detail "Oh no!"})
+
+    (:socket-exception? this)
+    (nom/fail ::socket-exception {:exception (java.net.SocketException.)})
+
+    :else {:todo true}))
+
+(defn variables [this _opts]
+  (cond
+    (:fail? this)
+    (nom/fail ::variables-failure {:detail "Oh no!"})
+
+    (:socket-exception? this)
+    (nom/fail ::socket-exception {:exception (java.net.SocketException.)})
+
+    :else {:todo true}))

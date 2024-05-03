@@ -26,3 +26,28 @@
 (mx/defn threads :- (schema/result ::protocol/message-ish)
   [this :- ::debuggee]
   ((:threads this) this))
+
+(mx/defn stack-trace :- (schema/result ::protocol/message-ish)
+  [this :- ::debuggee
+   opts :- [:map
+            [:thread-id :int]
+            [:start-frame {:optional true} :int]
+            [:levels {:optional true} :int]
+            [:format {:optional true} ::protocol/format]]]
+  ((:stack-trace this) this opts))
+
+(mx/defn scopes :- (schema/result ::protocol/message-ish)
+  [this :- ::debuggee
+   opts :- [:map
+            [:frame-id :int]]]
+  ((:scopes this) this opts))
+
+(mx/defn variables :- (schema/result ::protocol/message-ish)
+  [this :- ::debuggee
+   opts :- [:map
+            [:variables-reference :int]
+            [:filter {:optional true} [:enum "indexed" "named"]]
+            [:start {:optional true} :int]
+            [:count {:optional true} :int]
+            [:format {:optional true} ::protocol/format]]]
+  ((:variables this) this opts))

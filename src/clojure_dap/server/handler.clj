@@ -6,6 +6,7 @@
             [cognitect.anomalies :as anom]
             [de.otto.nom.core :as nom]
             [manifold.stream :as s]
+            [camel-snake-kebab.core :as csk]
             [clojure-dap.schema :as schema]
             [clojure-dap.stream :as stream]
             [clojure-dap.protocol :as protocol]
@@ -202,4 +203,51 @@
       (or (handle-anomaly res opts)
           [(resp
             {:body {:threads (:threads res)}})]))
+    [(resp missing-debuggee-warning)]))
+
+(defmethod handle-client-input* "stackTrace"
+  [{:keys [debuggee resp input] :as opts}]
+  (if debuggee
+    (let [stack-trace-opts
+          (-> (get input :arguments)
+              (select-keys #{:threadId :startFrame :levels :format})
+              (update-keys csk/->kebab-case))
+
+          res (debuggee/stack-trace
+               debuggee
+               (cond-> stack-trace-opts
+                 (:format stack-trace-opts)
+                 (update :format update-keys csk/->kebab-case)))]
+      (or (handle-anomaly res opts)
+          [(resp
+            {:body {}})]))
+    [(resp missing-debuggee-warning)]))
+
+(defmethod handle-client-input* "scopes"
+  [{:keys [debuggee resp input] :as opts}]
+  (if debuggee
+    (let [res (debuggee/scopes
+               debuggee
+               {:frame-id (get-in input [:arguments :frameId])})]
+      (or (handle-anomaly res opts)
+          [(resp
+            {:body {}})]))
+    [(resp missing-debuggee-warning)]))
+
+(defmethod handle-client-input* "variables"
+  [{:keys [debuggee resp input] :as opts}]
+  (if debuggee
+    (let [variables-opts
+          (-> (get input :arguments)
+              (select-keys #{:variablesReference :filter :start :count :format})
+              (update-keys csk/->kebab-case))
+
+          res (debuggee/variables
+               debuggee
+               (cond-> variables-opts
+                 (:format variables-opts)
+                 (update :format update-keys csk/->kebab-case)))]
+      (or (handle-anomaly res opts)
+          [(resp
+            {:body {}})]))
     [(resp missing-debuggee-warning)]))

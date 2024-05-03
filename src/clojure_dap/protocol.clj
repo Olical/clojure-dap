@@ -24,6 +24,9 @@
    ::attach-request
    ::attach-response
 
+   ::configuration-done-request
+   ::configuration-done-response
+
    ::disconnect-request
    ::disconnect-response
 
@@ -39,8 +42,17 @@
    ::threads-request
    ::threads-response
 
-   ::configuration-done-request
-   ::configuration-done-response
+   ::stack-trace-request
+   ::stack-trace-response
+
+   ::scopes-request
+   ::scopes-response
+
+   ::variables-request
+   ::variables-response
+
+   ::continue-request
+   ::continue-response
 
    ::output-event
    ::exited-event
@@ -55,6 +67,17 @@
       (schema/define! k
         (schema/dap-json-schema->malli (csk/->PascalCaseKeyword k)))))
    supported-messages))
+
+(schema/define! ::format
+  [:map
+   [:hex {:optional true} :boolean]
+   [:parameters {:optional true} :boolean]
+   [:parameter-types {:optional true} :boolean]
+   [:parameter-names {:optional true} :boolean]
+   [:parameter-values {:optional true} :boolean]
+   [:line {:optional true} :boolean]
+   [:module {:optional true} :boolean]
+   [:include-all {:optional true} :boolean]])
 
 (schema/define! ::next-seq-fn [:function [:=> [:cat] :int]])
 (schema/define! ::message-ish
