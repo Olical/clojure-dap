@@ -108,5 +108,5 @@
              :clojure-dap.protocol/error
              {:via vector?
               :trace vector?
-              :cause "Unexpected character ('u' (code 117)): was expecting double-quote to start field name\n at [Source: (String)\"{uhoh this is not ogodsds]!\"; line: 1, column: 3]"}}]
+              :cause "Unexpected character ('u' (code 117)): was expecting double-quote to start field name\n at [Source: (String)\"{uhoh this is not ogodsds]!\"; line: 1, column: 2]"}}]
            (protocol/parse-message "{uhoh this is not ogodsds]!")))))

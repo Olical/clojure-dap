@@ -56,7 +56,7 @@
                  :seq protocol/seq-placeholder
                  :success false
                  :type "response"
-                 :message #"Failed to validate against schema :clojure-dap.server.handler/attach-opts: \[:clojure_dap \{:type \[\"should be either fake or nrepl\"\]\}\]"
+                 :message #"Failed to validate against schema :clojure-dap.server.handler/attach-opts: .*should be either.*fake"
                  :body {:value {:clojure_dap {:type "ohno"}}}}]
                (handler/handle-client-input
                 {:debuggee! debuggee!

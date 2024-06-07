@@ -101,11 +101,15 @@
         ::header header
         ::error (Throwable->map e)}))))
 
+(def keyword-keys-object-mapper-with-source
+  (doto json/keyword-keys-object-mapper
+    (.configure com.fasterxml.jackson.core.JsonParser$Feature/INCLUDE_SOURCE_IN_LOCATION true)))
+
 (mx/defn parse-message :- (schema/result ::message)
   "Parse a DAP message from a string, returning an anomaly or a valid message."
   [body :- :string]
   (try
-    (let [parsed (json/read-value body json/keyword-keys-object-mapper)]
+    (let [parsed (json/read-value body keyword-keys-object-mapper-with-source)]
       (nom/with-nom [(schema/validate ::message parsed)]
         parsed))
     (catch Exception e
