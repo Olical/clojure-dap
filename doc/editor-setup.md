@@ -5,9 +5,17 @@ clojure-dap communicates over stdin/stdout using the Debug Adapter Protocol. Any
 ## Prerequisites
 
 1. A running Clojure nREPL server with CIDER middleware
-2. clojure-dap available on your PATH (or specify the full path)
+2. clojure-dap on the classpath (see Running below)
 
-To run clojure-dap: `mise run dap` (or `clojure -X clojure-dap.main/run`)
+## Running clojure-dap
+
+For local development, use `-Sdeps` with a `:local/root` path:
+
+```bash
+clojure -Sdeps '{:deps {clojure-dap {:local/root "/path/to/clojure-dap"}}}' -X clojure-dap.main/run
+```
+
+Replace `/path/to/clojure-dap` with the actual path to your checkout.
 
 ## Neovim (nvim-dap)
 
@@ -16,10 +24,16 @@ Requires [nvim-dap](https://github.com/mfussenegger/nvim-dap).
 ```lua
 local dap = require('dap')
 
+-- Adjust the path to your clojure-dap checkout
+local clojure_dap_path = '/path/to/clojure-dap'
+
 dap.adapters.clojure = {
   type = 'executable',
   command = 'clojure',
-  args = { '-X', 'clojure-dap.main/run' },
+  args = {
+    '-Sdeps', '{:deps {clojure-dap {:local/root "' .. clojure_dap_path .. '"}}}',
+    '-X', 'clojure-dap.main/run',
+  },
 }
 
 dap.configurations.clojure = {
@@ -56,7 +70,8 @@ name = "clojure"
 name = "clojure-dap"
 transport = "stdio"
 command = "clojure"
-args = ["-X", "clojure-dap.main/run"]
+# Adjust the path to your clojure-dap checkout
+args = ["-Sdeps", "{:deps {clojure-dap {:local/root \"/path/to/clojure-dap\"}}}", "-X", "clojure-dap.main/run"]
 
 [[language.debugger.templates]]
 name = "Attach to nREPL"
@@ -75,25 +90,6 @@ type = "nrepl"
 host = "127.0.0.1"
 port = "{0}"
 ```
-
-## VS Code
-
-Use a generic DAP extension or create a `launch.json`:
-
-```json
-{
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Attach to nREPL",
-      "type": "clojure-dap",
-      "request": "attach"
-    }
-  ]
-}
-```
-
-Note: A VS Code extension would be needed to register the `clojure-dap` adapter type. This is not yet available.
 
 ## Workflow
 
