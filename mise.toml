@@ -1,6 +1,7 @@
 [tools]
 java = "temurin-25"
 clojure = "1.12.4.1629"
+node = "22"
 
 [tasks.test]
 description = "Run all tests with Kaocha"
@@ -25,3 +26,8 @@ run = "clojure -M:outdated"
 [tasks.update-dap-schema]
 description = "Fetch the latest DAP JSON schema from Microsoft"
 run = "curl https://microsoft.github.io/debug-adapter-protocol/debugAdapterProtocol.json >resources/clojure-dap/dap-json-schema.json"
+
+[tasks.vscode-package]
+description = "Package the VS Code extension as a .vsix"
+dir = "vscode-extension"
+run = "npx @vscode/vsce package"
