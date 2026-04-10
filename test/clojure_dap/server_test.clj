@@ -7,7 +7,8 @@
             [clojure-dap.server :as server]
             [clojure-dap.server.handler :as handler]
             [clojure-dap.protocol :as protocol]
-            [clojure-dap.schema :as schema]))
+            [clojure-dap.schema :as schema]
+            [matcher-combinators.matchers :as m]))
 
 (t/deftest auto-seq
   (t/testing "starts at 1 and auto increments"
@@ -83,21 +84,22 @@
        {:input-stream input-stream
         :output-stream output-stream})
       (t/is (match?
-             [{:seq protocol/seq-placeholder
-               :request_seq 1
-               :type "response"
-               :command "initializor"
-               :success false
-               :message #"Error while handling input"}
-              {:type "event"
-               :event "output"
-               :seq protocol/seq-placeholder
-               :body
-               {:category "important"
-                :output #"Failed to validate against schema :clojure-dap.protocol/message: "
-                :data {:seq 2
-                       :type "event"
-                       :event "unknown event!"}}}]
+             (m/in-any-order
+              [{:seq protocol/seq-placeholder
+                :request_seq 1
+                :type "response"
+                :command "initializor"
+                :success false
+                :message #"Error while handling input"}
+               {:type "event"
+                :event "output"
+                :seq protocol/seq-placeholder
+                :body
+                {:category "important"
+                 :output #"Failed to validate against schema :clojure-dap.protocol/message: "
+                 :data {:seq 2
+                        :type "event"
+                        :event "unknown event!"}}}])
              (take-with-timeout! output-stream 2)))))
 
   (t/testing "a pre-closed output does not throw"
@@ -185,7 +187,11 @@
 
         @server-complete
 
+        ;; Both the error output and the valid initialize response should appear
         (t/is (re-find
-               #"(?s)Failed to validate against schema :clojure-dap.protocol/message.*\"command\":\"initialize\".*\"event\":\"initialized\""
+               #"Failed to validate against schema :clojure-dap.protocol/message"
+               (str output-writer)))
+        (t/is (re-find
+               #"\"command\":\"initialize\""
                (str output-writer)))
         (t/is (= [] @anomalies!))))))

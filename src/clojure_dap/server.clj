@@ -20,12 +20,15 @@
 (mx/defn run :- [:fn d/deferred?]
   "Consumes messages from the input stream and writes the respones to the output stream. We work with Clojure data structures at this level of abstraction, another system should handle the encoding and decoding of DAP messages.
 
-  Errors that occur in handle-client-input are fed into the output-stream as errors."
+  Each message is handled concurrently in its own future so that a
+  long-running handler (e.g. evaluate hitting a breakpoint) does not
+  block other messages (e.g. continue) from being processed."
   [{:keys [input-stream output-stream]}
    :- [:map
        [:input-stream [:fn s/stream?]]
        [:output-stream [:fn s/stream?]]]]
-  (let [debuggee! (atom ::no-debuggee)]
+  (let [debuggee! (atom ::no-debuggee)
+        in-flight! (atom #{})]
 
     (letfn [(handle [input]
               @(->> (try
@@ -45,11 +48,19 @@
                           :success false
                           :message (str "Error while handling input\n" (ex-message e))}]))
                     (s/put-all! output-stream)))]
-      (s/connect-via
-       input-stream
-       (fn [input]
-         (d/future (handle input)))
-       output-stream))))
+      (d/chain
+       (s/consume
+        (fn [input]
+          (let [f (d/future (handle input))]
+            (swap! in-flight! conj f)
+            (d/on-realized f
+                           (fn [_] (swap! in-flight! disj f))
+                           (fn [_] (swap! in-flight! disj f)))))
+        input-stream)
+       (fn [_]
+         ;; Wait for all in-flight handlers to complete before closing output
+         @(apply d/zip @in-flight!)
+         (s/close! output-stream))))))
 
 (mx/defn byte-stream->char-stream :- [:fn s/stream?]
   [byte-stream :- [:fn s/stream?]]

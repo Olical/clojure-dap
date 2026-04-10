@@ -345,7 +345,7 @@
           (t/is (= "300" (:result result))))))))
 
 (t/deftest evaluate-triggers-breakpoint
-  (t/testing "evaluate that hits a breakpoint returns a message instead of hanging"
+  (t/testing "evaluate that hits a breakpoint completes after continue"
     (let [tmp-file (java.io.File/createTempFile "eval-bp-trigger-test" ".clj")]
       (try
         (spit tmp-file "(ns test.eval-bp-trigger)\n\n(defn greet [name]\n  (str \"Hello, \" name))\n")
@@ -356,18 +356,21 @@
              {:source {:path (str tmp-file)}
               :breakpoints [{:line 4}]})
 
-            ;; Evaluate the breakpointed function via the debuggee (simulates DAP REPL)
-            (let [result (debuggee/evaluate debuggee {:expression "(test.eval-bp-trigger/greet \"world\")"})]
-              (tel/log! :info ["evaluate-triggers-breakpoint result:" result])
-              ;; Should return a message instead of hanging
-              (t/is (not (nom/anomaly? result)))
-              (t/is (string? (:result result))))
+            ;; Evaluate the breakpointed function in a future (it will block at the breakpoint)
+            (let [eval-future (future (debuggee/evaluate debuggee {:expression "(test.eval-bp-trigger/greet \"world\")"}))]
 
-            ;; The breakpoint should have been hit - check for stopped event
-            (let [event (take-event! output-stream :timeout-ms 2000)]
-              (t/is (= "stopped" (:event event))))
+              ;; The breakpoint should be hit - wait for stopped event
+              (let [event (take-event! output-stream)]
+                (t/is (= "stopped" (:event event))))
 
-            ;; Continue to clean up
-            (debuggee/continue debuggee {:thread-id 1})))
+              ;; Continue to let the eval complete
+              (debuggee/continue debuggee {:thread-id 1})
+
+              ;; The eval should now complete with the result
+              (let [result (deref eval-future 5000 :eval-timeout)]
+                (tel/log! :info ["evaluate-triggers-breakpoint result:" result])
+                (t/is (not= :eval-timeout result))
+                (t/is (not (nom/anomaly? result)))
+                (t/is (= "\"Hello, world\"" (:result result)))))))
         (finally
           (.delete tmp-file))))))

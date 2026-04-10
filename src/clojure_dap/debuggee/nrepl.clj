@@ -229,25 +229,20 @@
              result)))
 
        ;; Not at a breakpoint - regular eval.
-       ;; Use a future because the eval may trigger a #break which blocks
-       ;; the nREPL thread. If that happens, the init-debugger handler will
-       ;; emit a stopped event and we return a message to the client.
-       (let [client (get-in this [:connection :client])
-             eval-future (future
-                           (doall
-                            (nrepl/message client {:op "eval" :code expression})))
-             messages (deref eval-future 5000 ::eval-timeout)]
-         (if (= ::eval-timeout messages)
-           ;; The eval is blocking - likely hit a breakpoint.
-           ;; The stopped event has already been sent by the init-debugger handler.
-           {:result "Expression hit a breakpoint. Use continue/step, then re-evaluate."}
-           (do
-             (tel/log! :debug ["evaluate results" messages])
-             {:result
-              (->> messages
-                   (keep (fn [result]
-                           (some result #{:out :err :value})))
-                   (str/join))})))))))
+       ;; If the eval triggers a #break, it will block here until the user
+       ;; continues via DAP. This is fine because the server processes
+       ;; messages concurrently, so continue/step can be handled while
+       ;; this eval is pending.
+       (let [messages (nrepl/message
+                       (get-in this [:connection :client])
+                       {:op "eval"
+                        :code expression})]
+         (tel/log! :debug ["evaluate results" messages])
+         {:result
+          (->> messages
+               (keep (fn [result]
+                       (some result #{:out :err :value})))
+               (str/join))})))))
 
 (defn threads [this]
   (nom/try-nom
