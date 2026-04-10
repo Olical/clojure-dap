@@ -121,7 +121,8 @@
       (reset! (:breakpoint-state! debuggee) fake-breakpoint-state)
       (let [result (debuggee/variables debuggee {:variables-reference 1})]
         (t/is (not (nom/anomaly? result)))
-        (t/is (= {:variables [{:name "a" :value "10" :variablesReference 0}
+        (t/is (= {:variables [{:name "(result)" :value "42" :variablesReference 0}
+                              {:name "a" :value "10" :variablesReference 0}
                               {:name "b" :value "20" :variablesReference 0}]}
                  result)))))
 

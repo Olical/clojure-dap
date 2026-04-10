@@ -80,9 +80,11 @@
 
     :else
     (if-let [bp @(:breakpoint-state! this)]
-      {:variables (mapv (fn [[n v]]
-                          {:name n :value v :variablesReference 0})
-                        (:locals bp))}
+      {:variables (into
+                   [{:name "(result)" :value (or (:debug-value bp) "nil") :variablesReference 0}]
+                   (mapv (fn [[n v]]
+                           {:name n :value v :variablesReference 0})
+                         (:locals bp)))}
       {:variables []})))
 
 (defn- resume [this _opts]
