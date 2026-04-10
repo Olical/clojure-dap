@@ -72,7 +72,7 @@ args = {}
 
 ### VS Code
 
-A VS Code extension is needed to register the adapter. Contributions welcome.
+An unpublished extension is included in `vscode-extension/`. Build and install it with `mise run vscode-package` then `code --install-extension vscode-extension/clojure-dap-0.0.1.vsix`. Set `clojure-dap.path` in VS Code settings to your checkout path.
 
 ## Usage
 
