@@ -260,3 +260,7 @@
   (with-debuggee opts
     #(debuggee/step-out % {:thread-id (get-in input [:arguments :threadId])})
     (constantly {})))
+
+(defmethod handle-client-input* "setExceptionBreakpoints"
+  [{:keys [resp]}]
+  [(resp {:body {:breakpoints []}})])

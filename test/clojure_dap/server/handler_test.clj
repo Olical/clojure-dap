@@ -639,7 +639,23 @@
                  {:arguments {:threadId 1}
                   :command "stepOut"
                   :type "request"
-                  :seq 1}}))))))
+                  :seq 1}})))))
+
+  (t/testing "setExceptionBreakpoints returns empty breakpoints"
+    (t/is (= [{:command "setExceptionBreakpoints"
+               :request_seq 1
+               :seq protocol/seq-placeholder
+               :success true
+               :type "response"
+               :body {:breakpoints []}}]
+             (handler/handle-client-input
+              {:debuggee! (atom nil)
+               :output-stream (s/stream)
+               :input
+               {:arguments {:filters []}
+                :command "setExceptionBreakpoints"
+                :type "request"
+                :seq 1}})))))
 
 (t/deftest handle-anomalous-client-input
   (t/testing "given an anomaly it returns an output event containing an explanation"

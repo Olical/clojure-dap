@@ -74,7 +74,7 @@ Useful links for development:
 - [x] Scopes
 - [x] SetBreakpoints
 - [ ] SetDataBreakpoints
-- [ ] SetExceptionBreakpoints
+- [x] SetExceptionBreakpoints
 - [ ] SetExpression
 - [ ] SetFunctionBreakpoints
 - [ ] SetInstructionBreakpoints

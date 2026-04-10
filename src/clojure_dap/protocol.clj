@@ -61,6 +61,9 @@
    ::step-out-request
    ::step-out-response
 
+   ::set-exception-breakpoints-request
+   ::set-exception-breakpoints-response
+
    ::output-event
    ::continued-event
    ::exited-event
