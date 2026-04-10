@@ -160,6 +160,57 @@
         (finally
           (.delete tmp-file))))))
 
+(t/deftest multiple-breakpoints
+  (t/testing "can hit multiple breakpoints in sequence"
+    (let [tmp-file (java.io.File/createTempFile "multi-bp-test" ".clj")]
+      (try
+        (spit tmp-file "(ns test.multi-bp)\n\n(defn step-a [x]\n  (inc x))\n\n(defn step-b [x]\n  (* x 2))\n\n(defn run-both [x]\n  (step-b (step-a x)))\n")
+        (with-real-debuggee
+          (fn [debuggee server-port output-stream]
+            ;; Set breakpoints on both functions
+            (let [bp-result (debuggee/set-breakpoints
+                             debuggee
+                             {:source {:path (str tmp-file)}
+                              :breakpoints [{:line 4} {:line 7}]})]
+              (t/is (= [{:line 4 :verified true}
+                        {:line 7 :verified true}]
+                       (:breakpoints bp-result))))
+
+            (let [eval-future (real-server/eval-async!
+                               server-port
+                               "(test.multi-bp/run-both 5)")]
+
+              ;; First breakpoint: step-a
+              (let [event1 (take-event! output-stream)]
+                (t/is (= "stopped" (:event event1)))
+                (tel/log! :info ["First breakpoint - locals:" (:locals @(:breakpoint-state! debuggee))])
+                (let [vars (debuggee/variables debuggee {:variables-reference 1})
+                      var-map (into {} (map (juxt :name :value) (:variables vars)))]
+                  (t/is (= "5" (get var-map "x")))))
+
+              ;; Continue past first breakpoint
+              (debuggee/continue debuggee {:thread-id 1})
+
+              ;; Second breakpoint: step-b
+              (let [event2 (take-event! output-stream)]
+                (t/is (= "stopped" (:event event2)))
+                (tel/log! :info ["Second breakpoint - locals:" (:locals @(:breakpoint-state! debuggee))])
+                (let [vars (debuggee/variables debuggee {:variables-reference 1})
+                      var-map (into {} (map (juxt :name :value) (:variables vars)))]
+                  ;; step-b receives (inc 5) = 6
+                  (t/is (= "6" (get var-map "x")))))
+
+              ;; Continue to finish
+              (debuggee/continue debuggee {:thread-id 1})
+
+              ;; Eval should complete with (step-b (step-a 5)) = (* (inc 5) 2) = 12
+              (let [eval-result (deref eval-future 5000 :eval-timeout)]
+                (tel/log! :info ["final result:" eval-result])
+                (t/is (not= :eval-timeout eval-result))
+                (t/is (= ["12"] (:value eval-result)))))))
+        (finally
+          (.delete tmp-file))))))
+
 (t/deftest step-next-and-continue
   (t/testing "can step through code with next, then continue"
     (let [tmp-file (java.io.File/createTempFile "step-test" ".clj")]
