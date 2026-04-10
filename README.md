@@ -1,22 +1,133 @@
 # Clojure CIDER DAP server
 
-Will enable rich, interactive, debugging UIs in Neovim, VS Code and any other
-editor that supports DAP. See [nvim-dap-ui][nvim-dap-ui] for an example.
+A Debug Adapter Protocol server for Clojure, enabling rich debugging UIs in Neovim, Helix, VS Code, and any other DAP-capable editor. Uses CIDER's nREPL debug middleware under the hood.
 
-Coming "soon"! Until then, you can use the very basic [Conjure][conjure]
-debugger support. It's not a great UI, but you can learn about it on
-[the Conjure wiki][conjure-wiki].
+> **Beta software.** This works end-to-end but is under active development. Please try it and [report issues or feedback](https://github.com/Olical/clojure-dap/issues)!
 
-Useful links for development:
+## Features
 
-- https://microsoft.github.io/debug-adapter-protocol/overview
-- https://microsoft.github.io/debug-adapter-protocol/specification
-- https://github.com/cognitect-labs/anomalies
-- https://github.com/metosin/malli
-- https://cljdoc.org/d/nrepl/nrepl/1.1.0-alpha1/doc/usage/client
-- https://cljdoc.org/d/manifold/manifold/0.3.0/api/manifold.deferred
+- Set breakpoints and hit them
+- Inspect local variables when stopped
+- Evaluate expressions with access to locals at the breakpoint
+- Step over, step in, step out, continue
+- Works with any DAP client over stdin/stdout
 
-## Protocol support
+## Prerequisites
+
+- A running Clojure nREPL server with [CIDER middleware](https://github.com/clojure-emacs/cider-nrepl)
+- Java 21+ and Clojure CLI
+
+## Editor Setup
+
+### Neovim
+
+Requires [nvim-dap](https://github.com/mfussenegger/nvim-dap). Optionally add [nvim-dap-ui](https://github.com/rcarriga/nvim-dap-ui) for a full debugging UI.
+
+```lua
+local dap = require('dap')
+
+dap.adapters.clojure = {
+  type = 'executable',
+  command = 'clojure',
+  args = {
+    '-Sdeps', '{:deps {clojure-dap/clojure-dap {:local/root "/path/to/clojure-dap"}}}',
+    '-X', 'clojure-dap.main/run',
+  },
+}
+
+dap.configurations.clojure = {
+  {
+    name = 'Attach to nREPL',
+    type = 'clojure',
+    request = 'attach',
+  },
+}
+```
+
+Keybindings (example):
+
+| Key | Action |
+|-----|--------|
+| `<leader>db` | Toggle breakpoint |
+| `<leader>dc` | Continue / start debug session |
+| `<leader>dn` | Step over |
+| `<leader>di` | Step into |
+| `<leader>do` | Step out |
+| `<leader>dr` | Open DAP REPL |
+| `<leader>dx` | Terminate session |
+
+### Helix
+
+Helix has built-in (experimental) DAP support. Add to `~/.config/helix/languages.toml`:
+
+```toml
+[[language]]
+name = "clojure"
+
+[language.debugger]
+name = "clojure-dap"
+transport = "stdio"
+command = "clojure"
+# Adjust the path to your clojure-dap checkout
+args = ["-Sdeps", "{:deps {clojure-dap/clojure-dap {:local/root \"/path/to/clojure-dap\"}}}", "-X", "clojure-dap.main/run"]
+
+[[language.debugger.templates]]
+name = "Attach to nREPL"
+request = "attach"
+args = {}
+```
+
+Use `:debug-start` to begin a session.
+
+### VS Code
+
+A VS Code extension is not yet available. You can use a generic DAP extension with:
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach to nREPL",
+      "type": "clojure-dap",
+      "request": "attach"
+    }
+  ]
+}
+```
+
+## Usage
+
+1. Start your Clojure project's nREPL server with CIDER middleware
+2. Open a Clojure file in your editor and set breakpoints
+3. Start the debug adapter (attach to nREPL)
+4. Trigger the breakpointed code (e.g. from a REPL)
+5. Inspect variables, evaluate expressions, step through code
+6. Continue or disconnect
+
+### Attach Arguments
+
+The `attach` request accepts an optional `clojure_dap` argument:
+
+```json
+{
+  "clojure_dap": {
+    "type": "nrepl",
+    "nrepl": {
+      "host": "127.0.0.1",
+      "port": 7888
+    }
+  }
+}
+```
+
+If omitted, clojure-dap connects to `127.0.0.1` and reads the port from `.nrepl-port` in the current directory.
+
+## Development
+
+See [CLAUDE.md](CLAUDE.md) for development commands and architecture overview. See [doc/architecture.md](doc/architecture.md) for details on how DAP maps to CIDER's nREPL debug protocol.
+
+## Protocol Support
 
 ### Base Protocol
 
@@ -96,6 +207,6 @@ Useful links for development:
 - [ ] RunInTerminal
 - [ ] StartDebugging
 
-[nvim-dap-ui]: https://github.com/rcarriga/nvim-dap-ui
-[conjure]: https://github.com/Olical/conjure
-[conjure-wiki]: https://github.com/Olical/conjure/wiki/Clojure-nREPL-CIDER-debugger
+## License
+
+[Unlicense](UNLICENSE)
