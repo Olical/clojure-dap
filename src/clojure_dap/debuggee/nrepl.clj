@@ -167,28 +167,23 @@
          instrumented-source (source/insert-breakpoints
                               {:source source
                                :breakpoints breakpoints})
-         forms (source/read-all-forms instrumented-source)
-         results
-         (reduce
-          (fn [results {:keys [form position]}]
-            (let [prev-ns (:ns (last results))]
-              (conj
-               results
-               (nrepl/combine-responses
-                (nrepl/message
-                 client
-                 (cond->
-                  {:op "eval"
-                   :file path
-                   :code form
-                   :line (:line position)
-                   :column (:column position)}
-                   prev-ns (assoc :ns prev-ns)))))))
-          []
-          forms)]
-     (tel/log! {:level :debug :data {:instrumented-source instrumented-source
-                                     :result results}}
-               "set-breakpoints results")
+         forms (source/read-all-forms instrumented-source)]
+     ;; Evaluate each form. Use a future with a timeout because
+     ;; re-evaluating code with #break can trigger a breakpoint,
+     ;; which blocks the eval thread. In that case we return
+     ;; optimistically - the breakpoint was set successfully.
+     (doseq [{:keys [form position]} forms]
+       (tel/log! :debug ["set-breakpoints: eval form at line" (:line position)])
+       (let [eval-future (future
+                           (doall
+                            (nrepl/message
+                             client
+                             {:op "eval"
+                              :file path
+                              :code form
+                              :line (:line position)
+                              :column (:column position)})))]
+         (deref eval-future 5000 :eval-timeout)))
      {:breakpoints
       (mapv
        (fn [breakpoint]
@@ -364,6 +359,7 @@
 
      {:connection {:debug-transport debug-transport
                    :ops-transport ops-transport
+                   :ops-session-id ops-session-id
                    :client ops-client
                    :debug-client debug-client
                    :debug-session-id debug-session-id}
