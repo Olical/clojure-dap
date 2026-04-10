@@ -48,7 +48,7 @@
       (if-let [explainer (get @explainers! id)]
         explainer
         (let [explainer (m/explainer (get @schemas! id))]
-          (swap! explainers! id explainer)
+          (swap! explainers! assoc id explainer)
           explainer))
       (nom/fail
        ::anom/not-found
