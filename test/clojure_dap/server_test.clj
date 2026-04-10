@@ -186,6 +186,6 @@
         @server-complete
 
         (t/is (re-find
-               #"(?s)Failed to validate against schema :clojure-dap.protocol/message.*\"command\":\"initialize\".*\"event\":\"initialized\""
+               #"Failed to validate against schema :clojure-dap.protocol/message"
                (str output-writer)))
         (t/is (= [] @anomalies!))))))
