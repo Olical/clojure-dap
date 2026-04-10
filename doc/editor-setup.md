@@ -12,7 +12,7 @@ clojure-dap communicates over stdin/stdout using the Debug Adapter Protocol. Any
 For local development, use `-Sdeps` with a `:local/root` path:
 
 ```bash
-clojure -Sdeps '{:deps {clojure-dap {:local/root "/path/to/clojure-dap"}}}' -X clojure-dap.main/run
+clojure -Sdeps '{:deps {clojure-dap/clojure-dap {:local/root "/path/to/clojure-dap"}}}' -X clojure-dap.main/run
 ```
 
 Replace `/path/to/clojure-dap` with the actual path to your checkout.
@@ -31,7 +31,7 @@ dap.adapters.clojure = {
   type = 'executable',
   command = 'clojure',
   args = {
-    '-Sdeps', '{:deps {clojure-dap {:local/root "' .. clojure_dap_path .. '"}}}',
+    '-Sdeps', '{:deps {clojure-dap/clojure-dap {:local/root "' .. clojure_dap_path .. '"}}}',
     '-X', 'clojure-dap.main/run',
   },
 }
@@ -71,7 +71,7 @@ name = "clojure-dap"
 transport = "stdio"
 command = "clojure"
 # Adjust the path to your clojure-dap checkout
-args = ["-Sdeps", "{:deps {clojure-dap {:local/root \"/path/to/clojure-dap\"}}}", "-X", "clojure-dap.main/run"]
+args = ["-Sdeps", "{:deps {clojure-dap/clojure-dap {:local/root \"/path/to/clojure-dap\"}}}", "-X", "clojure-dap.main/run"]
 
 [[language.debugger.templates]]
 name = "Attach to nREPL"

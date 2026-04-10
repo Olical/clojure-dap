@@ -120,7 +120,11 @@
   "Parse a DAP message from a string, returning an anomaly or a valid message."
   [body :- :string]
   (try
-    (let [parsed (json/read-value body keyword-keys-object-mapper-with-source)]
+    (let [parsed (json/read-value body keyword-keys-object-mapper-with-source)
+          ;; Some DAP clients (e.g. Helix) start seq at 0, but the spec requires >= 1.
+          ;; Normalize to avoid validation failures.
+          parsed (cond-> parsed
+                   (= 0 (:seq parsed)) (assoc :seq 1))]
       (nom/with-nom [(schema/validate ::message parsed)]
         parsed))
     (catch Exception e
