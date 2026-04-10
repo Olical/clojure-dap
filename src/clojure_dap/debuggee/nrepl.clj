@@ -97,17 +97,27 @@
       (case (:state debug-state)
         ;; Idle or stopped: a new breakpoint hit
         (:idle :stopped)
-        (let [bp (extract-breakpoint message)]
-          (tel/log! :debug ["State machine: -> :stopped" {:key (:key bp)}])
-          [{:state :stopped
-            :breakpoint bp
-            :eval-expression nil
-            :eval-result! nil}
-           [{:type "event"
-             :event "stopped"
-             :seq protocol/seq-placeholder
-             :body {:reason "breakpoint"
-                    :threadId (hash session)}}]])
+        (if (:instrumenting? debug-state)
+          ;; Breakpoint hit during setBreakpoints instrumentation.
+          ;; Auto-continue so the eval can complete.
+          (do
+            (tel/log! :debug ["State machine: auto-continuing breakpoint during instrumentation"])
+            (nrepl-transport/send transport {:op "debug-input"
+                                             :session session-id
+                                             :key (:key message)
+                                             :input ":continue"})
+            [debug-state nil])
+          (let [bp (extract-breakpoint message)]
+            (tel/log! :debug ["State machine: -> :stopped" {:key (:key bp)}])
+            [{:state :stopped
+              :breakpoint bp
+              :eval-expression nil
+              :eval-result! nil}
+             [{:type "event"
+               :event "stopped"
+               :seq protocol/seq-placeholder
+               :body {:reason "breakpoint"
+                      :threadId (hash session)}}]]))
 
         ;; Awaiting expression prompt: CIDER is asking for the expression
         :awaiting-expression-prompt
@@ -168,22 +178,20 @@
                               {:source source
                                :breakpoints breakpoints})
          forms (source/read-all-forms instrumented-source)]
-     ;; Evaluate each form. Use a future with a timeout because
-     ;; re-evaluating code with #break can trigger a breakpoint,
-     ;; which blocks the eval thread. In that case we return
-     ;; optimistically - the breakpoint was set successfully.
+     ;; Mark that we're instrumenting so the init-debugger handler
+     ;; auto-continues any breakpoints hit during eval.
+     (swap! (:debug-state! this) assoc :instrumenting? true)
      (doseq [{:keys [form position]} forms]
        (tel/log! :debug ["set-breakpoints: eval form at line" (:line position)])
-       (let [eval-future (future
-                           (doall
-                            (nrepl/message
-                             client
-                             {:op "eval"
-                              :file path
-                              :code form
-                              :line (:line position)
-                              :column (:column position)})))]
-         (deref eval-future 5000 :eval-timeout)))
+       (doall
+        (nrepl/message
+         client
+         {:op "eval"
+          :file path
+          :code form
+          :line (:line position)
+          :column (:column position)})))
+     (swap! (:debug-state! this) assoc :instrumenting? false)
      {:breakpoints
       (mapv
        (fn [breakpoint]
