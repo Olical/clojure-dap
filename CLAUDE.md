@@ -30,7 +30,7 @@ mise run update-dap-schema                         # Fetch latest DAP JSON schem
 - **`server.clj`** - Orchestrates three manifold threads (reader, writer, message-reader) connected by streams. `run-io-wrapped` is the main entry; `run` handles message routing.
 - **`protocol.clj`** - Parses/renders DAP wire format. Validates all messages against the DAP JSON schema (converted to Malli). `supported-messages` lists all known message types.
 - **`schema.clj`** - Global Malli registry. Converts DAP JSON schema (`resources/clojure-dap/dap-json-schema.json`) to Malli schemas. Provides `result` wrapper type (value-or-anomaly) and `validate` function.
-- **`server/handler.clj`** - Multimethod `handle-client-input*` dispatches on `:command`. Each handler receives `{:input, :debuggee!, :output-stream, :resp}` and returns a seq of response messages.
+- **`server/handler.clj`** - Multimethod `handle-client-input*` dispatches on `:command`. Debuggee handlers use the `with-debuggee` helper which handles the check-debuggee/call/anomaly/respond pattern. Each handler receives `{:input, :debuggee!, :output-stream, :resp}` and returns a seq of response messages.
 - **`debuggee.clj`** - Protocol interface (as a map of functions): `set-breakpoints`, `evaluate`, `threads`, `stack-trace`, `scopes`, `variables`.
 - **`debuggee/nrepl.clj`** - Real implementation connecting to a running nREPL server with CIDER middleware.
 - **`debuggee/fake.clj`** - Test double with configurable responses/failures.
@@ -42,9 +42,11 @@ mise run update-dap-schema                         # Fetch latest DAP JSON schem
 - **Error handling**: Uses `nom` (monadic anomalies) throughout. Functions return either a value or a `nom/fail` anomaly. `nom/with-nom` short-circuits on anomaly. Anomaly kinds come from `cognitect/anomalies`.
 - **Schema validation**: `schema/validate` returns nil on success or an anomaly. `schema/result` wraps any schema as `[:or schema ::anomaly]`. `mx/defn` (Malli experimental) adds runtime type checking to function signatures.
 - **Case conversion**: Wire format uses PascalCase/camelCase; Clojure code uses kebab-case. `camel-snake-kebab` handles conversion. DAP JSON schema keys map to PascalCase Malli schema names.
-- **Async**: Manifold streams and deferreds. `util/with-thread` names threads for debugging. Server supports sync and async modes via `:async?` flag.
+- **Async**: Manifold streams and deferreds. `util/with-thread` names threads for debugging. Message handling uses `d/future` via `s/connect-via` for thread pool execution.
 - **Logging**: All logging goes to stderr (stdout reserved for DAP protocol). Telemere (`tel/log!`) with SLF4J bridges captures all Java logging.
 
 ## Testing
 
 Tests use `clojure.test` with `matcher-combinators` for assertions and `spy/core` for function call tracking. Kaocha runs with randomized order. The `kaocha_hooks.clj` pre-run hook enables Malli instrumentation with pretty error reporting during tests.
+
+nREPL integration tests use a fake nREPL server (`test/clojure_dap/test/fake_nrepl_server.clj`) that stubs ops with configurable canned responses, avoiding real CIDER debugger interactions that would block on breakpoints.
