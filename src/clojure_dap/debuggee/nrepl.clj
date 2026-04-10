@@ -355,15 +355,16 @@
 
      (util/with-thread ::init-debugger
        (loop []
-         (when-let [message (nrepl-transport/recv debug-transport 60000)]
-           (when (= (:session message) debug-session-id)
-             (tel/log! :info ["init-debugger output" message])
-             (let [[new-state events] (handle-init-debugger-output
-                                       @debug-state! message debug-transport debug-session-id)]
-               (reset! debug-state! new-state)
-               (when events
-                 @(s/put-all! output-stream events))))
-           (recur))))
+         (let [message (nrepl-transport/recv debug-transport Long/MAX_VALUE)]
+           (when message
+             (when (= (:session message) debug-session-id)
+               (tel/log! :info ["init-debugger output" message])
+               (let [[new-state events] (handle-init-debugger-output
+                                         @debug-state! message debug-transport debug-session-id)]
+                 (reset! debug-state! new-state)
+                 (when events
+                   @(s/put-all! output-stream events))))
+             (recur)))))
 
      {:connection {:debug-transport debug-transport
                    :ops-transport ops-transport
