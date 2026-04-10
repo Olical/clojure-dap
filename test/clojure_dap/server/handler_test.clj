@@ -562,7 +562,16 @@
                  {:arguments {:variablesReference 1}
                   :command "variables"
                   :type "request"
-                  :seq 1}}))))))
+                  :seq 1}})))))
+
+  (t/testing "unknown commands are caught at protocol validation, not the handler"
+    (t/is (nom/anomaly?
+           (schema/validate
+            ::protocol/message
+            {:seq 1
+             :type "request"
+             :command "launch"
+             :arguments {}})))))
 
 (t/deftest handle-anomalous-client-input
   (t/testing "given an anomaly it returns an output event containing an explanation"
