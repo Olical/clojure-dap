@@ -91,7 +91,9 @@
                   (tel/log! :info ["stack-trace result:" st])
                   (t/is (not (nom/anomaly? st)))
                   (t/is (= 1 (:totalFrames st)))
-                  (t/is (= (str tmp-file) (get-in st [:stackFrames 0 :source :path]))))
+                  (t/is (= (str tmp-file) (get-in st [:stackFrames 0 :source :path])))
+                  ;; Should report line 4 (where the #break is), not line 3 (form start)
+                  (t/is (= 4 (get-in st [:stackFrames 0 :line]))))
 
                 ;; Query scopes
                 (let [sc (debuggee/scopes debuggee {:frame-id 1})]

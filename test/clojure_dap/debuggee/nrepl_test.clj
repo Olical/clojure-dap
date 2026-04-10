@@ -55,6 +55,35 @@
                     :session "some-session"}
                    breakpoint-state!))))))
 
+(t/deftest breakpoint-line-test
+  (t/testing "single break - adjusts line from form start to break position"
+    (t/is (= 4 (nrepl-debuggee/breakpoint-line
+                {:line 3
+                 :code "(defn add [a b]\n#break   (+ a b))"
+                 :coor [3]}))))
+
+  (t/testing "multiple breaks - first coor depth selects first break"
+    (t/is (= 4 (nrepl-debuggee/breakpoint-line
+                {:line 3
+                 :code "(defn foo [a b]\n#break   (let [x (inc a)]\n#break     (+ x b)))"
+                 :coor [3]}))))
+
+  (t/testing "multiple breaks - deeper coor selects later break"
+    (t/is (= 5 (nrepl-debuggee/breakpoint-line
+                {:line 3
+                 :code "(defn foo [a b]\n#break   (let [x (inc a)]\n#break     (+ x b)))"
+                 :coor [3 2]}))))
+
+  (t/testing "no breaks in code - returns original line"
+    (t/is (= 3 (nrepl-debuggee/breakpoint-line
+                {:line 3
+                 :code "(defn add [a b] (+ a b))"
+                 :coor [3]}))))
+
+  (t/testing "nil code - returns original line"
+    (t/is (= 5 (nrepl-debuggee/breakpoint-line
+                {:line 5 :code nil :coor [3]})))))
+
 (t/deftest create
   (t/testing "connects to an nREPL server and returns a valid debuggee"
     (let [server (fake-server/start!)

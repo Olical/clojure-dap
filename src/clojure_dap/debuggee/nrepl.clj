@@ -78,13 +78,32 @@
           :name session-id})
        sessions)})))
 
+(defn breakpoint-line
+  "Compute the actual breakpoint line from the CIDER debug state.
+  CIDER reports the form's start line, but the #break may be deeper
+  in the form. We find all #break positions and use the one matching
+  the debug-value's position (last coor element as a rough guide)."
+  [{:keys [line code coor]}]
+  (if (and code (str/includes? code "#break"))
+    (let [break-lines (->> (str/split-lines code)
+                           (map-indexed vector)
+                           (filter (fn [[_i l]] (str/includes? l "#break")))
+                           (mapv (fn [[i _l]] (+ line i))))
+          ;; Use the last coor element as a hint for which break we're at.
+          ;; coor [3] with one break = first break. coor [3 2] with two breaks
+          ;; typically means we're at the deeper (later) break.
+          break-idx (min (max 0 (dec (count coor)))
+                         (dec (count break-lines)))]
+      (get break-lines break-idx line))
+    line))
+
 (defn stack-trace [this _opts]
   (nom/try-nom
    (if-let [bp @(:breakpoint-state! this)]
      {:stackFrames [{:id 1
                      :name (or (:code bp) "unknown")
                      :source {:path (:file bp)}
-                     :line (:line bp)
+                     :line (breakpoint-line bp)
                      :column (:column bp)}]
       :totalFrames 1}
      {:stackFrames [] :totalFrames 0})))
