@@ -2,7 +2,7 @@
   "Connects to an nREPL server and uses the CIDER debugger middleware as an implementation."
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
-            [taoensso.timbre :as log]
+            [taoensso.telemere :as tel]
             [me.raynes.fs :as rfs]
             [nrepl.core :as nrepl]
             [de.otto.nom.core :as nom]
@@ -41,10 +41,9 @@
                    prev-ns (assoc :ns prev-ns)))))))
           []
           forms)]
-     (log/debug
-      "set-breakpoints results"
-      {:instrumented-source instrumented-source
-       :result results})
+     (tel/log! {:level :debug :data {:instrumented-source instrumented-source
+                                     :result results}}
+               "set-breakpoints results")
      {:breakpoints
       (mapv
        (fn [breakpoint]
@@ -57,7 +56,7 @@
                    (get-in this [:connection :client])
                    {:op "eval"
                     :code expression})]
-     (log/debug "evaluate results" messages)
+     (tel/log! :debug ["evaluate results" messages])
      {:result
       (->> messages
            (keep (fn [result]
@@ -71,7 +70,7 @@
                    (get-in this [:connection :client])
                    {:op "ls-sessions"})
          [{:keys [sessions]}] messages]
-     (log/debug "ls-sessions results" messages)
+     (tel/log! :debug ["ls-sessions results" messages])
      {:threads
       (map
        (fn [session-id]
@@ -82,19 +81,19 @@
 (defn stack-trace [this opts]
   (nom/try-nom
    (let [messages []]
-     (log/debug "stack-trace results" messages)
+     (tel/log! :debug ["stack-trace results" messages])
      {:todo true})))
 
 (defn scopes [this opts]
   (nom/try-nom
    (let [messages []]
-     (log/debug "scopes results" messages)
+     (tel/log! :debug ["scopes results" messages])
      {:todo true})))
 
 (defn variables [this opts]
   (nom/try-nom
    (let [messages []]
-     (log/debug "variables results" messages)
+     (tel/log! :debug ["variables results" messages])
      {:todo true})))
 
 (mx/defn handle-init-debugger-output
@@ -147,7 +146,7 @@
        @(s/connect-via
          (s/->source (nrepl/message client {:op "init-debugger"}))
          (fn [message]
-           (log/info "init-debugger output" message)
+           (tel/log! :info ["init-debugger output" message])
            (s/put-all! output-stream (handle-init-debugger-output message)))
          output-stream))
 

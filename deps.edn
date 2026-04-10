@@ -10,10 +10,10 @@
   tortue/spy {:mvn/version "2.15.0"}
   lambdaisland/ansi {:mvn/version "0.2.37"}
 
-  com.taoensso/timbre {:mvn/version "6.8.0"}
+  com.taoensso/telemere {:mvn/version "1.2.1"}
 
-  ;; Ensure all logging flows through Timbre.
-  com.fzakaria/slf4j-timbre {:mvn/version "0.4.1"}
+  ;; Ensure all logging flows through Telemere.
+  com.taoensso/telemere-slf4j {:mvn/version "1.2.1"}
   org.slf4j/log4j-over-slf4j {:mvn/version "2.0.17"}
   org.slf4j/jul-to-slf4j {:mvn/version "2.0.17"}
   org.slf4j/jcl-over-slf4j {:mvn/version "2.0.17"}

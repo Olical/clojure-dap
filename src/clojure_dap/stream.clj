@@ -4,7 +4,7 @@
             [malli.experimental :as mx]
             [de.otto.nom.core :as nom]
             [cognitect.anomalies :as anom]
-            [taoensso.timbre :as log]
+            [taoensso.telemere :as tel]
             [manifold.stream :as s]
             [manifold.deferred :as d]
             [clojure-dap.schema :as schema]
@@ -55,7 +55,7 @@
     (let [value (try
                   (.read reader)
                   (catch java.io.IOException e
-                    (log/error e "Exception while reading into stream")
+                    (tel/log! {:level :error :error e} "Exception while reading into stream")
                     -1))]
       (if (= -1 value)
         (s/close! stream)
@@ -75,7 +75,7 @@
        (.write writer value)
        (.flush writer)
        (catch java.io.IOException e
-         (log/error e "Exception while writing into writer"))))
+         (tel/log! {:level :error :error e} "Exception while writing into writer"))))
    stream))
 
 (mx/defn partition-anomalies :- ::stream

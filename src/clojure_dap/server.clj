@@ -1,6 +1,6 @@
 (ns clojure-dap.server
   "Core of the system, give it some IO to communicate with the client through it'll handle the rest. Understands DAP messages and eventually nREPL too, acting as the trade hub of all the various processes, servers and clients."
-  (:require [taoensso.timbre :as log]
+  (:require [taoensso.telemere :as tel]
             [manifold.stream :as s]
             [manifold.deferred :as d]
             [malli.experimental :as mx]
@@ -38,7 +38,7 @@
                          :output-stream output-stream
                          :debuggee! debuggee!}))
                      (catch Throwable e
-                       (log/error e "Failed to handle client input")
+                       (tel/log! {:level :error :error e} "Failed to handle client input")
                        [{:request_seq (:seq input)
                          :type "response"
                          :seq protocol/seq-placeholder
@@ -64,7 +64,7 @@
    (fn [x]
      (if (and (int? x) (>= x 0))
        (list (char x))
-       (log/warn "Weird input byte, can't turn it into a character:" x)))
+       (tel/log! :warn ["Weird input byte, can't turn it into a character:" x])))
    byte-stream))
 
 (mx/defn run-io-wrapped
@@ -93,7 +93,7 @@
     (s/on-closed
      output-stream
      (fn []
-       (log/info "output-stream closed, closing anomalies-stream")
+       (tel/log! :info "output-stream closed, closing anomalies-stream")
        (s/close! anomalies-stream)))
 
     {:anomalies-stream anomalies-stream
@@ -110,7 +110,7 @@
                     output-stream
                     (fn [message]
                       (let [message (assoc message :seq (next-seq))]
-                        (log/trace "SEND" message)
+                        (tel/log! :trace ["SEND" message])
                         (protocol/render-message message)))
                     anomalies-stream)
            :writer output-writer}))
@@ -119,10 +119,10 @@
         (loop []
           (if (and (s/closed? input-byte-stream) (s/drained? input-byte-stream))
             (do
-              (log/trace "Closing input-message-stream")
+              (tel/log! :trace "Closing input-message-stream")
               (s/close! input-message-stream))
             (let [message (stream/read-message input-char-stream)]
-              (log/trace "RECV" message)
+              (tel/log! :trace ["RECV" message])
               @(s/put! input-message-stream message)
               (recur)))))
 

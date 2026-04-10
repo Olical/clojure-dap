@@ -26,7 +26,7 @@ mise run update-dap-schema                         # Fetch latest DAP JSON schem
 
 ### Key modules
 
-- **`main.clj`** - CLI entrypoint. Configures Timbre logging (stderr + `~/.cache/nvim/clojure-dap.log`), enables Malli instrumentation, wires stdin/stdout to the server.
+- **`main.clj`** - CLI entrypoint. Configures Telemere logging (stderr + `~/.cache/nvim/clojure-dap.log`), enables Malli instrumentation, wires stdin/stdout to the server.
 - **`server.clj`** - Orchestrates three manifold threads (reader, writer, message-reader) connected by streams. `run-io-wrapped` is the main entry; `run` handles message routing.
 - **`protocol.clj`** - Parses/renders DAP wire format. Validates all messages against the DAP JSON schema (converted to Malli). `supported-messages` lists all known message types.
 - **`schema.clj`** - Global Malli registry. Converts DAP JSON schema (`resources/clojure-dap/dap-json-schema.json`) to Malli schemas. Provides `result` wrapper type (value-or-anomaly) and `validate` function.
@@ -43,7 +43,7 @@ mise run update-dap-schema                         # Fetch latest DAP JSON schem
 - **Schema validation**: `schema/validate` returns nil on success or an anomaly. `schema/result` wraps any schema as `[:or schema ::anomaly]`. `mx/defn` (Malli experimental) adds runtime type checking to function signatures.
 - **Case conversion**: Wire format uses PascalCase/camelCase; Clojure code uses kebab-case. `camel-snake-kebab` handles conversion. DAP JSON schema keys map to PascalCase Malli schema names.
 - **Async**: Manifold streams and deferreds. `util/with-thread` names threads for debugging. Server supports sync and async modes via `:async?` flag.
-- **Logging**: All logging goes to stderr (stdout reserved for DAP protocol). Timbre with SLF4J bridges captures all Java logging.
+- **Logging**: All logging goes to stderr (stdout reserved for DAP protocol). Telemere (`tel/log!`) with SLF4J bridges captures all Java logging.
 
 ## Testing
 

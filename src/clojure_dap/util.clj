@@ -6,10 +6,10 @@
             [malli.experimental :as mx]
             [lambdaisland.ansi :as ansi]
             [malli.dev.pretty :as malli-pretty]
-            [taoensso.timbre :as log]))
+            [taoensso.telemere :as tel]))
 
 (defmacro with-thread
-  "Create a new thread using manifold.defferred/future. Will catch any Throwable thrown inside and taoensso.timbre/error log it. The exception is then re-thrown so you can pull it out of the deferred if required."
+  "Create a new thread using manifold.defferred/future. Will catch any Throwable thrown inside and log it at error level. The exception is then re-thrown so you can pull it out of the deferred if required."
   [thread-name & body]
   (assert
    (and (keyword? thread-name) (not (simple-keyword? thread-name)))
@@ -17,12 +17,12 @@
 
   `(d/future
      (try
-       (log/trace "Starting thread" ~thread-name)
+       (tel/log! :trace ["Starting thread" ~thread-name])
        (let [result# (do ~@body)]
-         (log/trace "End of thread" ~thread-name "- returning:" result#)
+         (tel/log! :trace ["End of thread" ~thread-name "- returning:" result#])
          result#)
        (catch Throwable t#
-         (log/error t# "End of thread" ~thread-name "- caught error")
+         (tel/log! {:level :error :error t#} (str "End of thread " ~thread-name " - caught error"))
          (throw t#)))))
 
 (mx/defn walk-sorted-map :- [:and [:fn sorted?] :map]

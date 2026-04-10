@@ -1,7 +1,7 @@
 (ns clojure-dap.server.handler
   "The pure handler functions called by clojure-dap.server that take in a DAP request and return a DAP response."
   (:require [clojure.string :as str]
-            [taoensso.timbre :as log]
+            [taoensso.telemere :as tel]
             [malli.experimental :as mx]
             [cognitect.anomalies :as anom]
             [de.otto.nom.core :as nom]
@@ -32,7 +32,7 @@
        [:input ::protocol/message]
        [:resp fn?]]]
   (when (nom/anomaly? a)
-    (log/error "Handling anomaly" a)
+    (tel/log! :error ["Handling anomaly" a])
 
     (cond->
      [(resp
