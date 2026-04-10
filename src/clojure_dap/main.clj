@@ -48,8 +48,7 @@
   (let [{:keys [server-complete anomalies-stream]}
         (server/run-io-wrapped
          {:input-reader (io/reader System/in)
-          :output-writer (io/writer System/out)
-          :async? true})]
+          :output-writer (io/writer System/out)})]
     (s/consume #(tel/log! :error %) anomalies-stream)
     (tel/log! :info "Server started in single session mode (multi session mode will come later)")
     @server-complete)

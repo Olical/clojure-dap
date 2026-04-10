@@ -21,11 +21,10 @@
   "Consumes messages from the input stream and writes the respones to the output stream. We work with Clojure data structures at this level of abstraction, another system should handle the encoding and decoding of DAP messages.
 
   Errors that occur in handle-client-input are fed into the output-stream as errors."
-  [{:keys [input-stream output-stream async?]}
+  [{:keys [input-stream output-stream]}
    :- [:map
        [:input-stream [:fn s/stream?]]
-       [:output-stream [:fn s/stream?]]
-       [:async? :boolean]]]
+       [:output-stream [:fn s/stream?]]]]
   (let [debuggee! (atom ::no-debuggee)]
 
     (letfn [(handle [input]
@@ -49,13 +48,7 @@
       (s/connect-via
        input-stream
        (fn [input]
-         (if async?
-           (let [result! (d/deferred)]
-             (d/future (handle input))
-             (d/success! result! (not (s/closed? output-stream)))
-             result!)
-           (handle input)))
-
+         (d/future (handle input)))
        output-stream))))
 
 (mx/defn byte-stream->char-stream :- [:fn s/stream?]
@@ -76,11 +69,10 @@
   Any anomalies from the client or the server are put into the anomalies-stream which is returned by this function.
 
   A deferred that waits for all threads and streams to complete is also returned. You can wait on that with deref until everything has drained and completed."
-  [{:keys [input-reader output-writer async?]}
+  [{:keys [input-reader output-writer]}
    :- [:map
        [:input-reader ::stream/reader]
-       [:output-writer ::stream/writer]
-       [:async? :boolean]]]
+       [:output-writer ::stream/writer]]]
 
   (let [next-seq (auto-seq)
 
@@ -128,5 +120,4 @@
 
       (run
        {:input-stream input-message-stream
-        :output-stream output-stream
-        :async? async?}))}))
+        :output-stream output-stream}))}))
