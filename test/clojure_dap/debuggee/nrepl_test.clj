@@ -276,10 +276,10 @@
       (fn [debuggee]
         (reset! (:breakpoint-state! debuggee)
                 {:key "k" :file "/tmp/test.clj" :line 13 :column 1
-                 :code "(+ a b)" :locals []})
+                 :code "(defn foo [a b] (+ a b))" :original-ns "my.ns" :locals []})
         (let [result (debuggee/stack-trace debuggee {:thread-id 1})]
           (t/is (= {:stackFrames [{:id 1
-                                   :name "(+ a b)"
+                                   :name "my.ns/foo"
                                    :source {:path "/tmp/test.clj"}
                                    :line 13
                                    :column 1}]

@@ -93,7 +93,9 @@
                   (t/is (= 1 (:totalFrames st)))
                   (t/is (= (str tmp-file) (get-in st [:stackFrames 0 :source :path])))
                   ;; Should report line 4 (where the #break is), not line 3 (form start)
-                  (t/is (= 4 (get-in st [:stackFrames 0 :line]))))
+                  (t/is (= 4 (get-in st [:stackFrames 0 :line])))
+                  ;; Frame name should be namespace/function-name
+                  (t/is (= "test.bp-integration/add" (get-in st [:stackFrames 0 :name]))))
 
                 ;; Query scopes
                 (let [sc (debuggee/scopes debuggee {:frame-id 1})]

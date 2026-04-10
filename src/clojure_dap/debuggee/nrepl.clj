@@ -97,11 +97,22 @@
       (get break-lines break-idx line))
     line))
 
+(defn- frame-name
+  "Extract a clean frame name from the breakpoint state.
+  Uses the namespace and debug-value for context."
+  [{:keys [original-ns code debug-value]}]
+  (let [;; Try to extract the defn name from code like (defn add [a b] ...)
+        fn-name (when code
+                  (second (re-find #"^\(defn?\s+(\S+)" code)))]
+    (if fn-name
+      (str (or original-ns "?") "/" fn-name)
+      (or debug-value "unknown"))))
+
 (defn stack-trace [this _opts]
   (nom/try-nom
    (if-let [bp @(:breakpoint-state! this)]
      {:stackFrames [{:id 1
-                     :name (or (:code bp) "unknown")
+                     :name (frame-name bp)
                      :source {:path (:file bp)}
                      :line (breakpoint-line bp)
                      :column (:column bp)}]
