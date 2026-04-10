@@ -4,3 +4,4 @@
 !/.clj-kondo/config.edn
 /.lsp/
 .rebel_readline_history
+*.vsix
