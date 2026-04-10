@@ -14,7 +14,7 @@ run = "clojure -M:format"
 description = "Start dev REPL with nREPL + CIDER + Rebel Readline"
 run = "clojure -X:test:repl giants-shoulders.repl/start!"
 
-[tasks.run]
+[tasks.dap]
 description = "Run the DAP server (stdin/stdout)"
 run = "clojure -X clojure-dap.main/run"
 

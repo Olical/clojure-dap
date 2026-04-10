@@ -7,7 +7,7 @@ clojure-dap communicates over stdin/stdout using the Debug Adapter Protocol. Any
 1. A running Clojure nREPL server with CIDER middleware
 2. clojure-dap available on your PATH (or specify the full path)
 
-To run clojure-dap: `mise run run` (or `clojure -X clojure-dap.main/run`)
+To run clojure-dap: `mise run dap` (or `clojure -X clojure-dap.main/run`)
 
 ## Neovim (nvim-dap)
 
