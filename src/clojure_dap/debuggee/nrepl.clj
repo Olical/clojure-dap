@@ -12,7 +12,152 @@
             [clojure-dap.util :as util]
             [clojure-dap.schema :as schema]
             [clojure-dap.source :as source]
-            [clojure-dap.debuggee :as debuggee]))
+            [clojure-dap.debuggee :as debuggee]
+            [nrepl.transport :as nrepl-transport]))
+
+;; ---------------------------------------------------------------------------
+;; Debug state machine
+;;
+;; States:
+;;   :idle                       - no breakpoint active
+;;   :stopped                    - stopped at a breakpoint
+;;   :awaiting-expression-prompt - sent :eval debug-input, waiting for CIDER
+;;                                 to ask for the expression
+;;   :awaiting-eval-result       - sent expression, waiting for CIDER to
+;;                                 return to the breakpoint with the result
+;;
+;; The state lives in an atom: {:state :idle, :breakpoint nil, ...}
+;; Only the init-debugger handler thread transitions state.
+;; ---------------------------------------------------------------------------
+
+(defn initial-debug-state []
+  {:state :idle
+   :breakpoint nil
+   :eval-expression nil
+   :eval-result! nil})
+
+(defn breakpoint-line
+  "Compute the actual breakpoint line from the CIDER debug state.
+  CIDER reports the form's start line, but the #break may be deeper
+  in the form. We find all #break positions and use the one matching
+  the debug-value's position (last coor element as a rough guide)."
+  [{:keys [line code coor]}]
+  (if (and code (str/includes? code "#break"))
+    (let [break-lines (->> (str/split-lines code)
+                           (map-indexed vector)
+                           (filter (fn [[_i l]] (str/includes? l "#break")))
+                           (mapv (fn [[i _l]] (+ line i))))
+          break-idx (min (max 0 (dec (count coor)))
+                         (dec (count break-lines)))]
+      (get break-lines break-idx line))
+    line))
+
+(defn- frame-name
+  "Extract a clean frame name from the breakpoint state."
+  [{:keys [original-ns code debug-value]}]
+  (let [fn-name (when code
+                  (second (re-find #"^\(defn?\s+(\S+)" code)))]
+    (if fn-name
+      (str (or original-ns "?") "/" fn-name)
+      (or debug-value "unknown"))))
+
+(defn- extract-breakpoint
+  "Extract breakpoint fields from a CIDER need-debug-input message."
+  [message]
+  (select-keys message [:key :debug-value :coor :locals
+                        :file :line :column :code
+                        :input-type :session :original-ns]))
+
+(defn- expression-prompt?
+  "Returns true if a need-debug-input message is an expression prompt
+  (CIDER asking for an expression to evaluate), not a breakpoint stop."
+  [message]
+  (let [input-type (:input-type message)]
+    ;; Expression prompts have input-type as a string, not a vector
+    ;; Or sometimes as a keyword ":expression"
+    (or (= input-type "expression")
+        (= input-type ":expression")
+        (= input-type :expression))))
+
+(defn handle-init-debugger-output
+  "State machine for processing init-debugger messages.
+  Returns a vector of [new-debug-state dap-events-to-emit].
+
+  transport and session-id are used to send debug-input messages directly
+  on the wire without consuming responses (which would steal from the
+  init-debugger stream)."
+  [debug-state message transport session-id]
+  (let [{:keys [status session] :as message} message
+        status-set (set (map keyword (or status [])))]
+    (if-not (:need-debug-input status-set)
+      ;; Not a debug-input request - no state change
+      [debug-state nil]
+
+      ;; need-debug-input message - transition based on current state
+      (case (:state debug-state)
+        ;; Idle or stopped: a new breakpoint hit
+        (:idle :stopped)
+        (let [bp (extract-breakpoint message)]
+          (tel/log! :debug ["State machine: -> :stopped" {:key (:key bp)}])
+          [{:state :stopped
+            :breakpoint bp
+            :eval-expression nil
+            :eval-result! nil}
+           [{:type "event"
+             :event "stopped"
+             :seq protocol/seq-placeholder
+             :body {:reason "breakpoint"
+                    :threadId (hash session)}}]])
+
+        ;; Awaiting expression prompt: CIDER is asking for the expression
+        :awaiting-expression-prompt
+        (if (expression-prompt? message)
+          (do
+            (tel/log! :debug ["State machine: expression prompt received, sending expression"
+                              (:eval-expression debug-state)])
+            ;; Send the expression via transport directly (not nrepl/message)
+            ;; to avoid consuming responses from the init-debugger stream
+            (nrepl-transport/send transport {:op "debug-input"
+                                             :session session-id
+                                             :key (:key message)
+                                             :input (:eval-expression debug-state)})
+            [(assoc debug-state :state :awaiting-eval-result)
+             nil])
+          ;; Unexpected: got a breakpoint instead of expression prompt
+          ;; Deliver error to the eval promise and handle as normal breakpoint
+          (do
+            (tel/log! :warn ["State machine: expected expression prompt, got breakpoint"])
+            (when-let [p (:eval-result! debug-state)]
+              (deliver p {:error "Unexpected state: got breakpoint instead of expression prompt"}))
+            (let [bp (extract-breakpoint message)]
+              [{:state :stopped
+                :breakpoint bp
+                :eval-expression nil
+                :eval-result! nil}
+               [{:type "event"
+                 :event "stopped"
+                 :seq protocol/seq-placeholder
+                 :body {:reason "breakpoint"
+                        :threadId (hash session)}}]])))
+
+        ;; Awaiting eval result: CIDER is returning to the breakpoint
+        :awaiting-eval-result
+        (let [bp (extract-breakpoint message)]
+          (tel/log! :debug ["State machine: eval complete, back at breakpoint"])
+          ;; Deliver the debug-value as the eval result
+          (when-let [p (:eval-result! debug-state)]
+            (deliver p {:result (or (:debug-value message) "nil")}))
+          ;; We're back at the breakpoint - don't emit stopped again,
+          ;; the client still thinks we're stopped
+          [{:state :stopped
+            :breakpoint bp
+            :eval-expression nil
+            :eval-result! nil}
+           nil])))))
+
+;; ---------------------------------------------------------------------------
+;; Debuggee interface methods
+;; ---------------------------------------------------------------------------
 
 (defn set-breakpoints [this {:keys [source breakpoints]}]
   (nom/try-nom
@@ -52,16 +197,45 @@
 
 (defn evaluate [this {:keys [expression]}]
   (nom/try-nom
-   (let [messages (nrepl/message
-                   (get-in this [:connection :client])
-                   {:op "eval"
-                    :code expression})]
-     (tel/log! :debug ["evaluate results" messages])
-     {:result
-      (->> messages
-           (keep (fn [result]
-                   (some result #{:out :err :value})))
-           (str/join))})))
+   (let [debug-state @(:debug-state! this)]
+     (if (and (= :stopped (:state debug-state))
+              (:breakpoint debug-state))
+       ;; At a breakpoint - use CIDER's eval debug-input for local access
+       (let [result-promise (promise)
+             bp (:breakpoint debug-state)
+             client (get-in this [:connection :client])]
+         ;; Transition to awaiting-expression-prompt
+         (swap! (:debug-state! this)
+                assoc
+                :state :awaiting-expression-prompt
+                :eval-expression expression
+                :eval-result! result-promise)
+         ;; Send :eval debug-input via the debug transport
+         (tel/log! :debug ["Sending :eval debug-input for expression" expression])
+         (let [debug-transport (get-in this [:connection :debug-transport])
+               debug-session-id (get-in this [:connection :debug-session-id])]
+           (nrepl-transport/send debug-transport {:op "debug-input"
+                                                  :session debug-session-id
+                                                  :key (:key bp)
+                                                  :input ":eval"}))
+         ;; Wait for the result with a timeout
+         (let [result (deref result-promise 10000 {:error "Evaluate timed out"})]
+           (tel/log! :debug ["Eval result:" result])
+           (if (:error result)
+             (nom/fail ::eval-error {::nom/message (:error result)})
+             result)))
+
+       ;; Not at a breakpoint - regular eval
+       (let [messages (nrepl/message
+                       (get-in this [:connection :client])
+                       {:op "eval"
+                        :code expression})]
+         (tel/log! :debug ["evaluate results" messages])
+         {:result
+          (->> messages
+               (keep (fn [result]
+                       (some result #{:out :err :value})))
+               (str/join))})))))
 
 ;; TODO Don't treat sessions as threads, let's actually get the thread IDs.
 (defn threads [this]
@@ -78,39 +252,9 @@
           :name session-id})
        sessions)})))
 
-(defn breakpoint-line
-  "Compute the actual breakpoint line from the CIDER debug state.
-  CIDER reports the form's start line, but the #break may be deeper
-  in the form. We find all #break positions and use the one matching
-  the debug-value's position (last coor element as a rough guide)."
-  [{:keys [line code coor]}]
-  (if (and code (str/includes? code "#break"))
-    (let [break-lines (->> (str/split-lines code)
-                           (map-indexed vector)
-                           (filter (fn [[_i l]] (str/includes? l "#break")))
-                           (mapv (fn [[i _l]] (+ line i))))
-          ;; Use the last coor element as a hint for which break we're at.
-          ;; coor [3] with one break = first break. coor [3 2] with two breaks
-          ;; typically means we're at the deeper (later) break.
-          break-idx (min (max 0 (dec (count coor)))
-                         (dec (count break-lines)))]
-      (get break-lines break-idx line))
-    line))
-
-(defn- frame-name
-  "Extract a clean frame name from the breakpoint state.
-  Uses the namespace and debug-value for context."
-  [{:keys [original-ns code debug-value]}]
-  (let [;; Try to extract the defn name from code like (defn add [a b] ...)
-        fn-name (when code
-                  (second (re-find #"^\(defn?\s+(\S+)" code)))]
-    (if fn-name
-      (str (or original-ns "?") "/" fn-name)
-      (or debug-value "unknown"))))
-
 (defn stack-trace [this _opts]
   (nom/try-nom
-   (if-let [bp @(:breakpoint-state! this)]
+   (if-let [bp (:breakpoint @(:debug-state! this))]
      {:stackFrames [{:id 1
                      :name (frame-name bp)
                      :source {:path (:file bp)}
@@ -121,7 +265,7 @@
 
 (defn scopes [this _opts]
   (nom/try-nom
-   (if-let [_bp @(:breakpoint-state! this)]
+   (if-let [_bp (:breakpoint @(:debug-state! this))]
      {:scopes [{:name "Locals"
                 :variablesReference 1
                 :expensive false}]}
@@ -129,7 +273,7 @@
 
 (defn variables [this _opts]
   (nom/try-nom
-   (if-let [bp @(:breakpoint-state! this)]
+   (if-let [bp (:breakpoint @(:debug-state! this))]
      {:variables (mapv (fn [[n v]]
                          {:name n :value v :variablesReference 0})
                        (:locals bp))}
@@ -139,14 +283,17 @@
   "Send a debug-input command to CIDER and clear the breakpoint state."
   [this command]
   (nom/try-nom
-   (let [bp @(:breakpoint-state! this)]
+   (let [debug-state @(:debug-state! this)
+         bp (:breakpoint debug-state)]
      (when bp
-       (let [client (get-in this [:connection :client])]
+       (let [debug-transport (get-in this [:connection :debug-transport])
+             debug-session-id (get-in this [:connection :debug-session-id])]
          (tel/log! :debug ["Sending debug-input" command "with key" (:key bp)])
-         (nrepl/message client {:op "debug-input"
-                                :key (:key bp)
-                                :input (str command)}))
-       (reset! (:breakpoint-state! this) nil))
+         (nrepl-transport/send debug-transport {:op "debug-input"
+                                                :session debug-session-id
+                                                :key (:key bp)
+                                                :input (str command)}))
+       (reset! (:debug-state! this) (initial-debug-state)))
      {})))
 
 (defn continue-command [this _opts]
@@ -161,24 +308,9 @@
 (defn step-out-command [this _opts]
   (send-debug-input this :out))
 
-(mx/defn handle-init-debugger-output
-  :- [:maybe [:sequential ::protocol/message]]
-  "Takes an nREPL message from the init-debugger call (such as need-debug-input) and turns it into messages to send up to the DAP client."
-  [{:keys [status session]
-    :as message}
-   :- [:map [:status [:vector :string]]]
-   breakpoint-state!
-   :- ::schema/atom]
-  (let [status (set (map keyword status))]
-    (when (:need-debug-input status)
-      (reset! breakpoint-state! (select-keys message [:key :debug-value :coor :locals
-                                                      :file :line :column :code
-                                                      :input-type :session :original-ns]))
-      [{:type "event"
-        :event "stopped"
-        :seq protocol/seq-placeholder
-        :body {:reason "breakpoint"
-               :threadId (hash session)}}])))
+;; ---------------------------------------------------------------------------
+;; Create / lifecycle
+;; ---------------------------------------------------------------------------
 
 (schema/define!
   ::create-opts
@@ -204,26 +336,53 @@
                   (let [f (io/file root-dir port-file-name)]
                     (when (rfs/readable? f)
                       (parse-long (slurp f)))))
-         transport (nrepl/connect
-                    {:host host
-                     :port port})
-         raw-client (nrepl/client transport Long/MAX_VALUE)
-         client (nrepl/client-session
-                 raw-client
-                 {:session (nrepl/new-session raw-client)})
-         breakpoint-state! (atom nil)]
+         ;; Two transports: one for debug channel, one for regular ops.
+         ;; This avoids message interleaving between the init-debugger
+         ;; stream and regular eval/ls-sessions operations.
+         debug-transport (nrepl/connect {:host host :port port})
+         ops-transport (nrepl/connect {:host host :port port})
+         debug-raw-client (nrepl/client debug-transport Long/MAX_VALUE)
+         ops-raw-client (nrepl/client ops-transport Long/MAX_VALUE)
+         debug-session-id (nrepl/new-session debug-raw-client)
+         ops-session-id (nrepl/new-session ops-raw-client)
+         debug-client (nrepl/client-session debug-raw-client {:session debug-session-id})
+         ops-client (nrepl/client-session ops-raw-client {:session ops-session-id})
+         debug-state! (atom (initial-debug-state))]
+
+     ;; Send init-debugger and then read ALL messages from the debug transport.
+     ;; We can't use nrepl/message because it terminates on "done" status,
+     ;; but the debug channel needs to stay open across multiple breakpoint
+     ;; hits and eval exchanges.
+     (nrepl-transport/send debug-transport {:op "init-debugger"
+                                            :session debug-session-id
+                                            :id (str (random-uuid))})
 
      (util/with-thread ::init-debugger
-       @(s/connect-via
-         (s/->source (nrepl/message client {:op "init-debugger"}))
-         (fn [message]
-           (tel/log! :info ["init-debugger output" message])
-           (s/put-all! output-stream (handle-init-debugger-output message breakpoint-state!)))
-         output-stream))
+       (loop []
+         (when-let [message (nrepl-transport/recv debug-transport 60000)]
+           (when (= (:session message) debug-session-id)
+             (tel/log! :info ["init-debugger output" message])
+             (let [[new-state events] (handle-init-debugger-output
+                                       @debug-state! message debug-transport debug-session-id)]
+               (reset! debug-state! new-state)
+               (when events
+                 @(s/put-all! output-stream events))))
+           (recur))))
 
-     {:connection {:transport transport
-                   :client client}
-      :breakpoint-state! breakpoint-state!
+     {:connection {:debug-transport debug-transport
+                   :ops-transport ops-transport
+                   :client ops-client
+                   :debug-client debug-client
+                   :debug-session-id debug-session-id}
+      :debug-state! debug-state!
+      ;; Backward compat: breakpoint-state! reads from debug-state!
+      :breakpoint-state! (reify
+                           clojure.lang.IDeref
+                           (deref [_] (:breakpoint @debug-state!))
+                           clojure.lang.IAtom
+                           (reset [_ v]
+                             (swap! debug-state! assoc :breakpoint v)
+                             v))
       :set-breakpoints set-breakpoints
       :evaluate evaluate
       :threads threads

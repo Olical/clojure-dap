@@ -11,9 +11,8 @@
             [clojure-dap.test.fake-nrepl-server :as fake-server]))
 
 (t/deftest handle-init-debugger-output
-  (t/testing "returns a stopped event and stores breakpoint state"
+  (t/testing "idle -> stopped: returns stopped event and breakpoint state"
     (let [session-id "4ee25650-d4dd-4be0-aaa3-ba832562f5e9"
-          breakpoint-state! (atom nil)
           message {:status ["need-debug-input"]
                    :session session-id
                    :debug-value "30"
@@ -23,37 +22,42 @@
                    :line 13
                    :column 1
                    :code "(+ a b)"}
-          result (nrepl-debuggee/handle-init-debugger-output message breakpoint-state!)]
+          [new-state events] (nrepl-debuggee/handle-init-debugger-output
+                              (nrepl-debuggee/initial-debug-state) message nil nil)]
+      (t/is (= :stopped (:state new-state)))
+      (t/is (= "some-key" (get-in new-state [:breakpoint :key])))
       (t/is (= [{:type "event"
                  :event "stopped"
                  :seq protocol/seq-placeholder
                  :body {:reason "breakpoint"
                         :threadId (hash session-id)}}]
-               result))
-      (t/is (= {:key "some-key"
-                :debug-value "30"
-                :locals [["a" "10"]]
-                :file "/tmp/test.clj"
-                :line 13
-                :column 1
-                :code "(+ a b)"
-                :session session-id}
-               @breakpoint-state!))))
+               events))))
 
-  (t/testing "returns nil when status does not contain need-debug-input"
-    (let [breakpoint-state! (atom nil)]
-      (t/is (nil? (nrepl-debuggee/handle-init-debugger-output
-                   {:status ["done"]
-                    :session "some-session"}
-                   breakpoint-state!)))
-      (t/is (nil? @breakpoint-state!))))
+  (t/testing "no state change for non-debug-input messages"
+    (let [state (nrepl-debuggee/initial-debug-state)
+          [new-state events] (nrepl-debuggee/handle-init-debugger-output
+                              state {:status ["done"] :session "s"} nil nil)]
+      (t/is (= state new-state))
+      (t/is (nil? events))))
 
-  (t/testing "returns nil for empty status"
-    (let [breakpoint-state! (atom nil)]
-      (t/is (nil? (nrepl-debuggee/handle-init-debugger-output
-                   {:status []
-                    :session "some-session"}
-                   breakpoint-state!))))))
+  (t/testing "awaiting-eval-result -> stopped: delivers result to promise"
+    (let [result-promise (promise)
+          state {:state :awaiting-eval-result
+                 :breakpoint {:key "old"}
+                 :eval-expression "(inc a)"
+                 :eval-result! result-promise}
+          [new-state events] (nrepl-debuggee/handle-init-debugger-output
+                              state
+                              {:status ["need-debug-input"]
+                               :session "s"
+                               :key "new-key"
+                               :debug-value "11"
+                               :locals [["a" "10"]]}
+                              nil nil)]
+      (t/is (= :stopped (:state new-state)))
+      (t/is (= "new-key" (get-in new-state [:breakpoint :key])))
+      (t/is (nil? events))
+      (t/is (= {:result "11"} (deref result-promise 100 :timeout))))))
 
 (t/deftest breakpoint-line-test
   (t/testing "single break - adjusts line from form start to break position"

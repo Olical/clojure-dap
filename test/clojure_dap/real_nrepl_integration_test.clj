@@ -162,6 +162,38 @@
         (finally
           (.delete tmp-file))))))
 
+(t/deftest evaluate-locals-at-breakpoint
+  (t/testing "can evaluate expressions that reference local variables"
+    (let [tmp-file (java.io.File/createTempFile "eval-locals-test" ".clj")]
+      (try
+        (spit tmp-file "(ns test.eval-locals)\n\n(defn add [a b]\n  (+ a b))\n")
+        (with-real-debuggee
+          (fn [debuggee server-port output-stream]
+            (debuggee/set-breakpoints
+             debuggee
+             {:source {:path (str tmp-file)}
+              :breakpoints [{:line 4}]})
+
+            (let [eval-future (real-server/eval-async!
+                               server-port
+                               "(test.eval-locals/add 10 20)")]
+
+              ;; Wait for stopped
+              (let [event (take-event! output-stream)]
+                (t/is (= "stopped" (:event event))))
+
+              ;; Evaluate an expression that references local variable 'a'
+              (let [result (debuggee/evaluate debuggee {:expression "(inc a)"})]
+                (tel/log! :info ["evaluate locals result:" result])
+                (t/is (not (nom/anomaly? result)))
+                (t/is (= "11" (:result result))))
+
+              ;; Continue
+              (debuggee/continue debuggee {:thread-id 1})
+              (deref eval-future 5000 :timeout))))
+        (finally
+          (.delete tmp-file))))))
+
 (t/deftest multiple-breakpoints
   (t/testing "can hit multiple breakpoints in sequence"
     (let [tmp-file (java.io.File/createTempFile "multi-bp-test" ".clj")]
