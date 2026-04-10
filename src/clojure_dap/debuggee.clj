@@ -11,7 +11,11 @@
    [:threads [:fn fn?]]
    [:stack-trace [:fn fn?]]
    [:scopes [:fn fn?]]
-   [:variables [:fn fn?]]])
+   [:variables [:fn fn?]]
+   [:continue [:fn fn?]]
+   [:next [:fn fn?]]
+   [:step-in [:fn fn?]]
+   [:step-out [:fn fn?]]])
 
 (mx/defn set-breakpoints :- (schema/result ::protocol/message-ish)
   [this :- ::debuggee
@@ -54,3 +58,23 @@
             [:count {:optional true} :int]
             [:format {:optional true} ::protocol/format]]]
   ((:variables this) this opts))
+
+(mx/defn continue :- (schema/result ::protocol/message-ish)
+  [this :- ::debuggee
+   opts :- [:map [:thread-id :int]]]
+  ((:continue this) this opts))
+
+(mx/defn next-request :- (schema/result ::protocol/message-ish)
+  [this :- ::debuggee
+   opts :- [:map [:thread-id :int]]]
+  ((:next this) this opts))
+
+(mx/defn step-in :- (schema/result ::protocol/message-ish)
+  [this :- ::debuggee
+   opts :- [:map [:thread-id :int]]]
+  ((:step-in this) this opts))
+
+(mx/defn step-out :- (schema/result ::protocol/message-ish)
+  [this :- ::debuggee
+   opts :- [:map [:thread-id :int]]]
+  ((:step-out this) this opts))

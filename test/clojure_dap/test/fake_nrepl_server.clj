@@ -69,6 +69,10 @@
                             (response-for msg :status (or (:status response) #{"done"}))
                             (dissoc response :status))))
 
+         "debug-input"
+         (transport/send transport
+                         (response-for msg :status :done))
+
          ;; Default: unknown op
          (transport/send transport
                          (response-for msg

@@ -11,29 +11,49 @@
             [clojure-dap.test.fake-nrepl-server :as fake-server]))
 
 (t/deftest handle-init-debugger-output
-  (t/testing "returns a stopped event when status contains need-debug-input"
+  (t/testing "returns a stopped event and stores breakpoint state"
     (let [session-id "4ee25650-d4dd-4be0-aaa3-ba832562f5e9"
-          result (nrepl-debuggee/handle-init-debugger-output
-                  {:status ["need-debug-input"]
+          breakpoint-state! (atom nil)
+          message {:status ["need-debug-input"]
                    :session session-id
                    :debug-value "30"
-                   :key "some-key"})]
+                   :key "some-key"
+                   :locals [["a" "10"]]
+                   :file "/tmp/test.clj"
+                   :line 13
+                   :column 1
+                   :code "(+ a b)"}
+          result (nrepl-debuggee/handle-init-debugger-output message breakpoint-state!)]
       (t/is (= [{:type "event"
                  :event "stopped"
                  :seq protocol/seq-placeholder
                  :body {:reason "breakpoint"
                         :threadId (hash session-id)}}]
-               result))))
+               result))
+      (t/is (= {:key "some-key"
+                :debug-value "30"
+                :locals [["a" "10"]]
+                :file "/tmp/test.clj"
+                :line 13
+                :column 1
+                :code "(+ a b)"
+                :session session-id}
+               @breakpoint-state!))))
 
   (t/testing "returns nil when status does not contain need-debug-input"
-    (t/is (nil? (nrepl-debuggee/handle-init-debugger-output
-                 {:status ["done"]
-                  :session "some-session"}))))
+    (let [breakpoint-state! (atom nil)]
+      (t/is (nil? (nrepl-debuggee/handle-init-debugger-output
+                   {:status ["done"]
+                    :session "some-session"}
+                   breakpoint-state!)))
+      (t/is (nil? @breakpoint-state!))))
 
   (t/testing "returns nil for empty status"
-    (t/is (nil? (nrepl-debuggee/handle-init-debugger-output
-                 {:status []
-                  :session "some-session"})))))
+    (let [breakpoint-state! (atom nil)]
+      (t/is (nil? (nrepl-debuggee/handle-init-debugger-output
+                   {:status []
+                    :session "some-session"}
+                   breakpoint-state!))))))
 
 (t/deftest create
   (t/testing "connects to an nREPL server and returns a valid debuggee"
@@ -51,7 +71,12 @@
           (t/is (fn? (:threads debuggee)))
           (t/is (fn? (:stack-trace debuggee)))
           (t/is (fn? (:scopes debuggee)))
-          (t/is (fn? (:variables debuggee))))
+          (t/is (fn? (:variables debuggee)))
+          (t/is (fn? (:continue debuggee)))
+          (t/is (fn? (:next debuggee)))
+          (t/is (fn? (:step-in debuggee)))
+          (t/is (fn? (:step-out debuggee)))
+          (t/is (some? (:breakpoint-state! debuggee))))
         (finally
           (s/close! output-stream)
           (nrepl-server/stop-server server)))))
@@ -83,11 +108,16 @@
           (s/close! output-stream)
           (nrepl-server/stop-server server)))))
 
-  (t/testing "init-debugger with need-debug-input produces stopped event on output stream"
+  (t/testing "init-debugger with need-debug-input stores breakpoint state and emits stopped"
     (let [server (fake-server/start!
                   {:init-debugger [{:status #{"need-debug-input"}
                                     :debug-value "42"
-                                    :key "debug-key"}]})
+                                    :key "debug-key"
+                                    :locals [["x" "10"]]
+                                    :file "/tmp/test.clj"
+                                    :line 5
+                                    :column 1
+                                    :code "(+ x 1)"}]})
           output-stream (s/stream 16)]
       (try
         (let [debuggee (nrepl-debuggee/create
@@ -95,8 +125,6 @@
                          :port (fake-server/port server)}
                         {:output-stream output-stream})]
           (t/is (not (nom/anomaly? debuggee)))
-          ;; The init-debugger thread should produce a stopped event
-          ;; The session will be the fake server's session ID
           (let [event (deref (s/take! output-stream) 2000 :timeout)]
             (t/is (match?
                    {:type "event"
@@ -104,7 +132,10 @@
                     :seq protocol/seq-placeholder
                     :body {:reason "breakpoint"
                            :threadId int?}}
-                   event))))
+                   event)))
+          ;; Breakpoint state should be stored
+          (t/is (some? @(:breakpoint-state! debuggee)))
+          (t/is (= "debug-key" (:key @(:breakpoint-state! debuggee)))))
         (finally
           (s/close! output-stream)
           (nrepl-server/stop-server server))))))
@@ -208,3 +239,77 @@
                       {:source {:path "/nonexistent/file.clj"}
                        :breakpoints [{:line 1}]})]
           (t/is (nom/anomaly? result)))))))
+
+(t/deftest stack-trace-test
+  (t/testing "returns breakpoint location as stack frame"
+    (with-fake-debuggee
+      {}
+      (fn [debuggee]
+        (reset! (:breakpoint-state! debuggee)
+                {:key "k" :file "/tmp/test.clj" :line 13 :column 1
+                 :code "(+ a b)" :locals []})
+        (let [result (debuggee/stack-trace debuggee {:thread-id 1})]
+          (t/is (= {:stackFrames [{:id 1
+                                   :name "(+ a b)"
+                                   :source {:path "/tmp/test.clj"}
+                                   :line 13
+                                   :column 1}]
+                    :totalFrames 1}
+                   result))))))
+
+  (t/testing "returns empty when no breakpoint active"
+    (with-fake-debuggee
+      {}
+      (fn [debuggee]
+        (let [result (debuggee/stack-trace debuggee {:thread-id 1})]
+          (t/is (= {:stackFrames [] :totalFrames 0} result)))))))
+
+(t/deftest scopes-test
+  (t/testing "returns locals scope when breakpoint active"
+    (with-fake-debuggee
+      {}
+      (fn [debuggee]
+        (reset! (:breakpoint-state! debuggee)
+                {:key "k" :locals [["a" "10"]]})
+        (let [result (debuggee/scopes debuggee {:frame-id 1})]
+          (t/is (= {:scopes [{:name "Locals"
+                              :variablesReference 1
+                              :expensive false}]}
+                   result))))))
+
+  (t/testing "returns empty when no breakpoint active"
+    (with-fake-debuggee
+      {}
+      (fn [debuggee]
+        (let [result (debuggee/scopes debuggee {:frame-id 1})]
+          (t/is (= {:scopes []} result)))))))
+
+(t/deftest variables-test
+  (t/testing "returns locals as variables"
+    (with-fake-debuggee
+      {}
+      (fn [debuggee]
+        (reset! (:breakpoint-state! debuggee)
+                {:key "k" :locals [["a" "10"] ["b" "20"]]})
+        (let [result (debuggee/variables debuggee {:variables-reference 1})]
+          (t/is (= {:variables [{:name "a" :value "10" :variablesReference 0}
+                                {:name "b" :value "20" :variablesReference 0}]}
+                   result))))))
+
+  (t/testing "returns empty when no breakpoint active"
+    (with-fake-debuggee
+      {}
+      (fn [debuggee]
+        (let [result (debuggee/variables debuggee {:variables-reference 1})]
+          (t/is (= {:variables []} result)))))))
+
+(t/deftest continue-test
+  (t/testing "clears breakpoint state"
+    (with-fake-debuggee
+      {}
+      (fn [debuggee]
+        (reset! (:breakpoint-state! debuggee)
+                {:key "k" :locals []})
+        (let [result (debuggee/continue debuggee {:thread-id 1})]
+          (t/is (not (nom/anomaly? result)))
+          (t/is (nil? @(:breakpoint-state! debuggee))))))))

@@ -78,32 +78,72 @@
           :name session-id})
        sessions)})))
 
-(defn stack-trace [this opts]
+(defn stack-trace [this _opts]
   (nom/try-nom
-   (let [messages []]
-     (tel/log! :debug ["stack-trace results" messages])
-     {:todo true})))
+   (if-let [bp @(:breakpoint-state! this)]
+     {:stackFrames [{:id 1
+                     :name (or (:code bp) "unknown")
+                     :source {:path (:file bp)}
+                     :line (:line bp)
+                     :column (:column bp)}]
+      :totalFrames 1}
+     {:stackFrames [] :totalFrames 0})))
 
-(defn scopes [this opts]
+(defn scopes [this _opts]
   (nom/try-nom
-   (let [messages []]
-     (tel/log! :debug ["scopes results" messages])
-     {:todo true})))
+   (if-let [_bp @(:breakpoint-state! this)]
+     {:scopes [{:name "Locals"
+                :variablesReference 1
+                :expensive false}]}
+     {:scopes []})))
 
-(defn variables [this opts]
+(defn variables [this _opts]
   (nom/try-nom
-   (let [messages []]
-     (tel/log! :debug ["variables results" messages])
-     {:todo true})))
+   (if-let [bp @(:breakpoint-state! this)]
+     {:variables (mapv (fn [[n v]]
+                         {:name n :value v :variablesReference 0})
+                       (:locals bp))}
+     {:variables []})))
+
+(defn- send-debug-input
+  "Send a debug-input command to CIDER and clear the breakpoint state."
+  [this command]
+  (nom/try-nom
+   (let [bp @(:breakpoint-state! this)]
+     (when bp
+       (let [client (get-in this [:connection :client])]
+         (tel/log! :debug ["Sending debug-input" command "with key" (:key bp)])
+         (nrepl/message client {:op "debug-input"
+                                :key (:key bp)
+                                :input (str command)}))
+       (reset! (:breakpoint-state! this) nil))
+     {})))
+
+(defn continue-command [this _opts]
+  (send-debug-input this :continue))
+
+(defn next-command [this _opts]
+  (send-debug-input this :next))
+
+(defn step-in-command [this _opts]
+  (send-debug-input this :in))
+
+(defn step-out-command [this _opts]
+  (send-debug-input this :out))
 
 (mx/defn handle-init-debugger-output
   :- [:maybe [:sequential ::protocol/message]]
   "Takes an nREPL message from the init-debugger call (such as need-debug-input) and turns it into messages to send up to the DAP client."
   [{:keys [status session]
-    :as _message}
-   :- [:map [:status [:vector :string]]]]
+    :as message}
+   :- [:map [:status [:vector :string]]]
+   breakpoint-state!
+   :- ::schema/atom]
   (let [status (set (map keyword status))]
     (when (:need-debug-input status)
+      (reset! breakpoint-state! (select-keys message [:key :debug-value :coor :locals
+                                                      :file :line :column :code
+                                                      :input-type :session :original-ns]))
       [{:type "event"
         :event "stopped"
         :seq protocol/seq-placeholder
@@ -140,21 +180,27 @@
          raw-client (nrepl/client transport Long/MAX_VALUE)
          client (nrepl/client-session
                  raw-client
-                 {:session (nrepl/new-session raw-client)})]
+                 {:session (nrepl/new-session raw-client)})
+         breakpoint-state! (atom nil)]
 
      (util/with-thread ::init-debugger
        @(s/connect-via
          (s/->source (nrepl/message client {:op "init-debugger"}))
          (fn [message]
            (tel/log! :info ["init-debugger output" message])
-           (s/put-all! output-stream (handle-init-debugger-output message)))
+           (s/put-all! output-stream (handle-init-debugger-output message breakpoint-state!)))
          output-stream))
 
      {:connection {:transport transport
                    :client client}
+      :breakpoint-state! breakpoint-state!
       :set-breakpoints set-breakpoints
       :evaluate evaluate
       :threads threads
       :stack-trace stack-trace
       :scopes scopes
-      :variables variables})))
+      :variables variables
+      :continue continue-command
+      :next next-command
+      :step-in step-in-command
+      :step-out step-out-command})))
