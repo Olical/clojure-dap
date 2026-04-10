@@ -237,20 +237,13 @@
                        (some result #{:out :err :value})))
                (str/join))})))))
 
-;; TODO Don't treat sessions as threads, let's actually get the thread IDs.
 (defn threads [this]
   (nom/try-nom
-   (let [messages (nrepl/message
-                   (get-in this [:connection :client])
-                   {:op "ls-sessions"})
-         [{:keys [sessions]}] messages]
-     (tel/log! :debug ["ls-sessions results" messages])
-     {:threads
-      (map
-       (fn [session-id]
-         {:id (hash session-id)
-          :name session-id})
-       sessions)})))
+   ;; Return a single thread representing the debug session.
+   ;; The thread ID must match what we send in stopped events.
+   (let [debug-session-id (get-in this [:connection :debug-session-id])]
+     {:threads [{:id (hash debug-session-id)
+                 :name "main"}]})))
 
 (defn stack-trace [this _opts]
   (nom/try-nom

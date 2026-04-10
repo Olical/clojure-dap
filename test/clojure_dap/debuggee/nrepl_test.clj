@@ -209,23 +209,14 @@
                    (:result result))))))))
 
 (t/deftest threads-test
-  (t/testing "returns threads from nREPL sessions"
+  (t/testing "returns a single thread for the debug session"
     (with-fake-debuggee
-      {:sessions ["session-a" "session-b"]}
+      {}
       (fn [debuggee]
         (let [result (debuggee/threads debuggee)]
           (t/is (not (nom/anomaly? result)))
-          (t/is (= [{:id (hash "session-a") :name "session-a"}
-                    {:id (hash "session-b") :name "session-b"}]
-                   (:threads result)))))))
-
-  (t/testing "returns threads with single session"
-    (with-fake-debuggee
-      {:sessions ["only-session"]}
-      (fn [debuggee]
-        (let [result (debuggee/threads debuggee)]
-          (t/is (= [{:id (hash "only-session") :name "only-session"}]
-                   (:threads result))))))))
+          (t/is (= 1 (count (:threads result))))
+          (t/is (= "main" (get-in result [:threads 0 :name]))))))))
 
 (t/deftest set-breakpoints-test
   (t/testing "instruments source and evals forms via nREPL"
