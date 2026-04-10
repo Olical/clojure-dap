@@ -82,7 +82,16 @@ An unpublished extension is included in `vscode-extension/`. Build and install i
 4. Trigger the breakpointed code from a REPL
 5. Inspect variables, evaluate expressions, step through code
 
-By default clojure-dap connects to `127.0.0.1` and reads the port from `.nrepl-port`. You can pass explicit connection options via the attach arguments (see [doc/editor-setup.md](doc/editor-setup.md)).
+By default clojure-dap connects to `127.0.0.1` and reads the port from `.nrepl-port`. You can pass explicit connection options in the attach config:
+
+```json
+{
+  "clojure_dap": {
+    "type": "nrepl",
+    "nrepl": { "host": "127.0.0.1", "port": 7888 }
+  }
+}
+```
 
 ## What's Supported
 
