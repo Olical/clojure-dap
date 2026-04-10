@@ -28,23 +28,23 @@
   (let [debuggee! (atom ::no-debuggee)]
 
     (letfn [(handle [input]
-              (->> (try
-                     (if (nom/anomaly? input)
-                       (handler/handle-anomalous-client-input
-                        {:anomaly input})
-                       (handler/handle-client-input
-                        {:input input
-                         :output-stream output-stream
-                         :debuggee! debuggee!}))
-                     (catch Throwable e
-                       (tel/log! {:level :error :error e} "Failed to handle client input")
-                       [{:request_seq (:seq input)
-                         :type "response"
-                         :seq protocol/seq-placeholder
-                         :command (:command input)
-                         :success false
-                         :message (str "Error while handling input\n" (ex-message e))}]))
-                   (s/put-all! output-stream)))]
+              @(->> (try
+                      (if (nom/anomaly? input)
+                        (handler/handle-anomalous-client-input
+                         {:anomaly input})
+                        (handler/handle-client-input
+                         {:input input
+                          :output-stream output-stream
+                          :debuggee! debuggee!}))
+                      (catch Throwable e
+                        (tel/log! {:level :error :error e} "Failed to handle client input")
+                        [{:request_seq (:seq input)
+                          :type "response"
+                          :seq protocol/seq-placeholder
+                          :command (:command input)
+                          :success false
+                          :message (str "Error while handling input\n" (ex-message e))}]))
+                    (s/put-all! output-stream)))]
       (s/connect-via
        input-stream
        (fn [input]
