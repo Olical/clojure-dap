@@ -25,7 +25,8 @@
 
  :aliases
  {:test {:extra-deps {lambdaisland/kaocha {:mvn/version "1.91.1392"}
-                      nubank/matcher-combinators {:mvn/version "3.10.0"}}
+                      nubank/matcher-combinators {:mvn/version "3.10.0"}
+                      cider/cider-nrepl {:mvn/version "0.58.0"}}
          :main-opts ["-m" "kaocha.runner"]}
   :repl {:extra-deps {cider/cider-nrepl {:mvn/version "0.58.0"}
                       com.bhauman/rebel-readline {:mvn/version "0.1.7"}}}
