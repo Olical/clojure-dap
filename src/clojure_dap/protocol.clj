@@ -55,7 +55,14 @@
    ::continue-request
    ::continue-response
 
+   ::step-in-request
+   ::step-in-response
+
+   ::step-out-request
+   ::step-out-response
+
    ::output-event
+   ::continued-event
    ::exited-event
    ::stopped-event
    ::terminated-event])

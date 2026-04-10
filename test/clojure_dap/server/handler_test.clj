@@ -379,7 +379,7 @@
                  :seq protocol/seq-placeholder
                  :success true
                  :type "response"
-                 :body {}}]
+                 :body {:stackFrames [] :totalFrames 0}}]
                (handler/handle-client-input
                 {:debuggee! (atom (fake-debuggee/create {}))
                  :output-stream (s/stream)
@@ -449,7 +449,7 @@
                  :seq protocol/seq-placeholder
                  :success true
                  :type "response"
-                 :body {}}]
+                 :body {:scopes []}}]
                (handler/handle-client-input
                 {:debuggee! (atom (fake-debuggee/create {}))
                  :output-stream (s/stream)
@@ -519,7 +519,7 @@
                  :seq protocol/seq-placeholder
                  :success true
                  :type "response"
-                 :body {}}]
+                 :body {:variables []}}]
                (handler/handle-client-input
                 {:debuggee! (atom (fake-debuggee/create {}))
                  :output-stream (s/stream)
@@ -571,7 +571,75 @@
             {:seq 1
              :type "request"
              :command "launch"
-             :arguments {}})))))
+             :arguments {}}))))
+
+  (t/testing "continue request"
+    (t/testing "success"
+      (t/is (= [{:command "continue"
+                 :request_seq 1
+                 :seq protocol/seq-placeholder
+                 :success true
+                 :type "response"
+                 :body {:allThreadsContinued true}}]
+               (handler/handle-client-input
+                {:debuggee! (atom (fake-debuggee/create {}))
+                 :output-stream (s/stream)
+                 :input
+                 {:arguments {:threadId 1}
+                  :command "continue"
+                  :type "request"
+                  :seq 1}})))))
+
+  (t/testing "next request"
+    (t/testing "success"
+      (t/is (= [{:command "next"
+                 :request_seq 1
+                 :seq protocol/seq-placeholder
+                 :success true
+                 :type "response"
+                 :body {}}]
+               (handler/handle-client-input
+                {:debuggee! (atom (fake-debuggee/create {}))
+                 :output-stream (s/stream)
+                 :input
+                 {:arguments {:threadId 1}
+                  :command "next"
+                  :type "request"
+                  :seq 1}})))))
+
+  (t/testing "stepIn request"
+    (t/testing "success"
+      (t/is (= [{:command "stepIn"
+                 :request_seq 1
+                 :seq protocol/seq-placeholder
+                 :success true
+                 :type "response"
+                 :body {}}]
+               (handler/handle-client-input
+                {:debuggee! (atom (fake-debuggee/create {}))
+                 :output-stream (s/stream)
+                 :input
+                 {:arguments {:threadId 1}
+                  :command "stepIn"
+                  :type "request"
+                  :seq 1}})))))
+
+  (t/testing "stepOut request"
+    (t/testing "success"
+      (t/is (= [{:command "stepOut"
+                 :request_seq 1
+                 :seq protocol/seq-placeholder
+                 :success true
+                 :type "response"
+                 :body {}}]
+               (handler/handle-client-input
+                {:debuggee! (atom (fake-debuggee/create {}))
+                 :output-stream (s/stream)
+                 :input
+                 {:arguments {:threadId 1}
+                  :command "stepOut"
+                  :type "request"
+                  :seq 1}}))))))
 
 (t/deftest handle-anomalous-client-input
   (t/testing "given an anomaly it returns an output event containing an explanation"

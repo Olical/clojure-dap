@@ -16,7 +16,8 @@
 
 (def initialised-response-body
   {:supportsCancelRequest false
-   :supportsConfigurationDoneRequest true})
+   :supportsConfigurationDoneRequest true
+   :supportsSingleThreadExecutionRequests true})
 
 (mx/defn socket-exception-anomaly?
   "Given an anomaly, returs true if it's caused by a java.net.SocketException."
@@ -221,17 +222,41 @@
   (with-debuggee opts
     #(debuggee/stack-trace % (kebab-case-format
                               (kebab-case-arguments input #{:threadId :startFrame :levels :format})))
-    (constantly {})))
+    identity))
 
 (defmethod handle-client-input* "scopes"
   [{:keys [input] :as opts}]
   (with-debuggee opts
     #(debuggee/scopes % {:frame-id (get-in input [:arguments :frameId])})
-    (constantly {})))
+    identity))
 
 (defmethod handle-client-input* "variables"
   [{:keys [input] :as opts}]
   (with-debuggee opts
     #(debuggee/variables % (kebab-case-format
                             (kebab-case-arguments input #{:variablesReference :filter :start :count :format})))
+    identity))
+
+(defmethod handle-client-input* "continue"
+  [{:keys [input] :as opts}]
+  (with-debuggee opts
+    #(debuggee/continue % {:thread-id (get-in input [:arguments :threadId])})
+    (fn [_] {:allThreadsContinued true})))
+
+(defmethod handle-client-input* "next"
+  [{:keys [input] :as opts}]
+  (with-debuggee opts
+    #(debuggee/next-request % {:thread-id (get-in input [:arguments :threadId])})
+    (constantly {})))
+
+(defmethod handle-client-input* "stepIn"
+  [{:keys [input] :as opts}]
+  (with-debuggee opts
+    #(debuggee/step-in % {:thread-id (get-in input [:arguments :threadId])})
+    (constantly {})))
+
+(defmethod handle-client-input* "stepOut"
+  [{:keys [input] :as opts}]
+  (with-debuggee opts
+    #(debuggee/step-out % {:thread-id (get-in input [:arguments :threadId])})
     (constantly {})))
