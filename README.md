@@ -53,7 +53,7 @@ Useful links for development:
 - [ ] BreakpointLocations
 - [ ] Completions
 - [x] ConfigurationDone
-- [ ] Continue
+- [x] Continue
 - [ ] DataBreakpointInfo
 - [ ] Disassemble
 - [x] Disconnect
@@ -65,13 +65,13 @@ Useful links for development:
 - [ ] Launch
 - [ ] LoadedSources
 - [ ] Modules
-- [ ] Next
+- [x] Next
 - [ ] Pause
 - [ ] ReadMemory
 - [ ] Restart
 - [ ] RestartFrame
 - [ ] ReverseContinue
-- [ ] Scopes
+- [x] Scopes
 - [x] SetBreakpoints
 - [ ] SetDataBreakpoints
 - [ ] SetExceptionBreakpoints
@@ -80,15 +80,15 @@ Useful links for development:
 - [ ] SetInstructionBreakpoints
 - [ ] SetVariable
 - [ ] Source
-- [ ] StackTrace
+- [x] StackTrace
 - [ ] StepBack
-- [ ] StepIn
+- [x] StepIn
 - [ ] StepInTargets
-- [ ] StepOut
+- [x] StepOut
 - [ ] Terminate
 - [ ] TerminateThreads
 - [x] Threads
-- [ ] Variables
+- [x] Variables
 - [ ] WriteMemory
 
 ### Reverse Requests
