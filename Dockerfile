@@ -1,4 +1,4 @@
-FROM clojure:temurin-21-tools-deps-alpine
+FROM clojure:temurin-25-tools-deps-alpine
 
 WORKDIR /app/clojure-dap
 

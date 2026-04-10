@@ -1,5 +1,5 @@
 [tools]
-java = "temurin-21"
+java = "temurin-25"
 clojure = "1.12.4.1629"
 
 [tasks.test]
