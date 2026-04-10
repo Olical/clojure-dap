@@ -38,13 +38,38 @@
                :arguments {:threadId 3}}))))
 
   (t/testing "we can round trip through the render and read functions"
-    (with-open [stream (s/stream)]
-      (let [message {:seq 153
-                     :type "request"
-                     :command "next"
-                     :arguments {:threadId 3}}]
+    (doseq [message [{:seq 153
+                      :type "request"
+                      :command "next"
+                      :arguments {:threadId 3}}
+                     {:seq 1
+                      :type "response"
+                      :request_seq 1
+                      :command "initialize"
+                      :success true
+                      :body {:supportsCancelRequest false
+                             :supportsConfigurationDoneRequest true}}
+                     {:seq 2
+                      :type "event"
+                      :event "initialized"}
+                     {:seq 3
+                      :type "event"
+                      :event "stopped"
+                      :body {:reason "breakpoint"
+                             :threadId 1}}
+                     {:seq 4
+                      :type "event"
+                      :event "output"
+                      :body {:output "hello"
+                             :category "console"}}
+                     {:seq 5
+                      :type "event"
+                      :event "terminated"
+                      :body {}}]]
+      (with-open [stream (s/stream)]
         (s/put-all! stream (char-array (protocol/render-message message)))
-        (t/is (match? message (stream/read-message stream))))))
+        (t/is (match? message (stream/read-message stream))
+              (str "Round trip failed for: " (:type message) "/" (or (:command message) (:event message)))))))
 
   (t/testing "a bad message returns an anomaly"
     (t/is
