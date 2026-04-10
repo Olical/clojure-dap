@@ -1,0 +1,92 @@
+{
+  "name": "clojure-dap",
+  "displayName": "Clojure DAP",
+  "description": "Debug Adapter Protocol support for Clojure via CIDER nREPL",
+  "version": "0.0.1",
+  "publisher": "olical",
+  "license": "Unlicense",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Olical/clojure-dap"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Debuggers"
+  ],
+  "activationEvents": [
+    "onDebugResolve:clojure-dap"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Clojure DAP",
+      "properties": {
+        "clojure-dap.path": {
+          "type": "string",
+          "default": "",
+          "description": "Path to your clojure-dap checkout (e.g. /home/user/clojure-dap)"
+        }
+      }
+    },
+    "debuggers": [
+      {
+        "type": "clojure-dap",
+        "label": "Clojure DAP",
+        "languages": [
+          "clojure"
+        ],
+        "configurationAttributes": {
+          "attach": {
+            "properties": {
+              "clojure_dap": {
+                "type": "object",
+                "description": "Connection options",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "nrepl"
+                    ],
+                    "default": "nrepl"
+                  },
+                  "nrepl": {
+                    "type": "object",
+                    "properties": {
+                      "host": {
+                        "type": "string",
+                        "default": "127.0.0.1"
+                      },
+                      "port": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "clojure-dap",
+            "request": "attach",
+            "name": "Attach to nREPL"
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "Clojure DAP: Attach to nREPL",
+            "description": "Attach to a running nREPL server with CIDER middleware",
+            "body": {
+              "type": "clojure-dap",
+              "request": "attach",
+              "name": "Attach to nREPL"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
