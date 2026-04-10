@@ -343,3 +343,31 @@
         (let [result (debuggee/evaluate debuggee {:expression "(+ 100 200)"})]
           (t/is (not (nom/anomaly? result)))
           (t/is (= "300" (:result result))))))))
+
+(t/deftest evaluate-triggers-breakpoint
+  (t/testing "evaluate that hits a breakpoint returns a message instead of hanging"
+    (let [tmp-file (java.io.File/createTempFile "eval-bp-trigger-test" ".clj")]
+      (try
+        (spit tmp-file "(ns test.eval-bp-trigger)\n\n(defn greet [name]\n  (str \"Hello, \" name))\n")
+        (with-real-debuggee
+          (fn [debuggee _server-port output-stream]
+            (debuggee/set-breakpoints
+             debuggee
+             {:source {:path (str tmp-file)}
+              :breakpoints [{:line 4}]})
+
+            ;; Evaluate the breakpointed function via the debuggee (simulates DAP REPL)
+            (let [result (debuggee/evaluate debuggee {:expression "(test.eval-bp-trigger/greet \"world\")"})]
+              (tel/log! :info ["evaluate-triggers-breakpoint result:" result])
+              ;; Should return a message instead of hanging
+              (t/is (not (nom/anomaly? result)))
+              (t/is (string? (:result result))))
+
+            ;; The breakpoint should have been hit - check for stopped event
+            (let [event (take-event! output-stream :timeout-ms 2000)]
+              (t/is (= "stopped" (:event event))))
+
+            ;; Continue to clean up
+            (debuggee/continue debuggee {:thread-id 1})))
+        (finally
+          (.delete tmp-file))))))
