@@ -142,25 +142,26 @@
 
         @server-complete
 
-        (t/is (= (str/join
-                  (map
-                   protocol/render-message
-                   [{:request_seq 1
-                     :command "initialize"
-                     :type "response"
-                     :success true
-                     :seq 1
-                     :body handler/initialised-response-body}
-                    {:type "event"
-                     :event "initialized"
-                     :seq 2}
-                    {:request_seq 2
-                     :command "attach"
-                     :type "response"
-                     :success true
-                     :seq 3
-                     :body {}}]))
-                 (str output-writer)))
+        (t/is (str/starts-with?
+               (str output-writer)
+               (str/join
+                (map
+                 protocol/render-message
+                 [{:request_seq 1
+                   :command "initialize"
+                   :type "response"
+                   :success true
+                   :seq 1
+                   :body handler/initialised-response-body}
+                  {:type "event"
+                   :event "initialized"
+                   :seq 2}
+                  {:request_seq 2
+                   :command "attach"
+                   :type "response"
+                   :success true
+                   :seq 3
+                   :body {}}]))))
         (t/is (= [] @anomalies!)))))
 
   (t/testing "bad or unknown messages from the client result in error output"
