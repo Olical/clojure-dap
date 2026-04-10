@@ -105,24 +105,13 @@
                    :command "threads"}]
       (t/is (= message (protocol/parse-message (json/write-value-as-string message))))))
 
-  (t/testing "returns an anomaly if the message doesn't validate"
+  (t/testing "returns the message with a warning for non-conforming input (lenient parsing)"
     (let [message {:seq "153"
                    :type "request"
                    :command "next"
                    :arguments {:threadId 3}}]
-      (t/is (match?
-             [:de.otto.nom.core/anomaly
-              :cognitect.anomalies/incorrect
-              {:cognitect.anomalies/message
-               "Failed to validate against schema :clojure-dap.protocol/message",
-               :clojure-dap.schema/explanation
-               {:value
-                {:arguments {:threadId 3},
-                 :command "next",
-                 :type "request",
-                 :seq "153"},
-                :errors sequential?}}]
-             (protocol/parse-message (json/write-value-as-string message))))))
+      ;; Should return the parsed map, not an anomaly
+      (t/is (= message (protocol/parse-message (json/write-value-as-string message))))))
 
   (t/testing "returns an anomaly if the JSON is bad"
     (t/is (match?

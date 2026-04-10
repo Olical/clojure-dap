@@ -5,6 +5,7 @@
             [de.otto.nom.core :as nom]
             [cognitect.anomalies :as anom]
             [jsonista.core :as json]
+            [taoensso.telemere :as tel]
             [clojure-dap.schema :as schema]
             [camel-snake-kebab.core :as csk]
             [clojure-dap.util :as util]))
@@ -116,13 +117,19 @@
   (doto json/keyword-keys-object-mapper
     (.configure com.fasterxml.jackson.core.JsonParser$Feature/INCLUDE_SOURCE_IN_LOCATION true)))
 
-(mx/defn parse-message :- (schema/result ::message)
-  "Parse a DAP message from a string, returning an anomaly or a valid message."
+(mx/defn parse-message :- (schema/result [:map-of :keyword :any])
+  "Parse a DAP message from a string. Validates against the schema but only
+  logs a warning for non-conforming messages (lenient on input from clients).
+  Returns an anomaly only if the JSON itself is unparseable."
   [body :- :string]
   (try
     (let [parsed (json/read-value body keyword-keys-object-mapper-with-source)]
-      (nom/with-nom [(schema/validate ::message parsed)]
-        parsed))
+      (when-let [anomaly (schema/validate ::message parsed)]
+        (tel/log! :warn ["Client message does not conform to DAP schema"
+                         {:command (:command parsed)
+                          :seq (:seq parsed)
+                          :anomaly anomaly}]))
+      parsed)
     (catch Exception e
       (nom/fail
        ::anom/incorrect

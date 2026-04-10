@@ -187,11 +187,8 @@
 
         @server-complete
 
-        ;; Both the error output and the valid initialize response should appear
-        (t/is (re-find
-               #"Failed to validate against schema :clojure-dap.protocol/message"
-               (str output-writer)))
-        (t/is (re-find
-               #"\"command\":\"initialize\""
-               (str output-writer)))
+        ;; Both the error for the unknown command and the valid initialize response should appear
+        (let [output (str output-writer)]
+          (t/is (re-find #"someunknowncommand" output))
+          (t/is (re-find #"\"command\":\"initialize\"" output)))
         (t/is (= [] @anomalies!))))))

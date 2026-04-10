@@ -64,25 +64,15 @@
                ::protocol/body "{\"t"}]
              (stream/read-message stream)))))
 
-  (t/testing "returns an anomaly if we can read a message but it's malformed"
+  (t/testing "returns the message even if it doesn't conform to schema (lenient parsing)"
     (with-open [stream (s/stream)]
       (s/put-all! stream (char-array invalid-message))
 
-      (t/is
-       (match?
-        [:de.otto.nom.core/anomaly
-         :cognitect.anomalies/incorrect
-         {:clojure-dap.schema/explanation
-          {:errors some?
-           :schema m/schema?
-           :value {:arguments {:threadId 3}
-                   :command "next"
-                   :seq 153
-                   :type "reqest"}}
-
-          :cognitect.anomalies/message
-          "Failed to validate against schema :clojure-dap.protocol/message"}]
-        (stream/read-message stream)))))
+      (t/is (= {:arguments {:threadId 3}
+                :command "next"
+                :seq 153
+                :type "reqest"}
+               (stream/read-message stream)))))
 
   (t/testing "returns an anomaly if the stream closes"
     (with-open [stream (s/stream)]
