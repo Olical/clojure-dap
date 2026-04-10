@@ -251,12 +251,15 @@
 (defn stack-trace [this _opts]
   (nom/try-nom
    (if-let [bp (:breakpoint @(:debug-state! this))]
-     {:stackFrames [{:id 1
-                     :name (frame-name bp)
-                     :source {:path (:file bp)}
-                     :line (breakpoint-line bp)
-                     :column (:column bp)}]
-      :totalFrames 1}
+     (let [path (:file bp)
+           filename (when path (last (str/split path #"/")))]
+       {:stackFrames [{:id 1
+                       :name (frame-name bp)
+                       :source {:path path
+                                :name (or filename path)}
+                       :line (breakpoint-line bp)
+                       :column (:column bp)}]
+        :totalFrames 1})
      {:stackFrames [] :totalFrames 0})))
 
 (defn scopes [this _opts]
@@ -270,9 +273,11 @@
 (defn variables [this _opts]
   (nom/try-nom
    (if-let [bp (:breakpoint @(:debug-state! this))]
-     {:variables (mapv (fn [[n v]]
-                         {:name n :value v :variablesReference 0})
-                       (:locals bp))}
+     {:variables (into
+                  [{:name "(result)" :value (or (:debug-value bp) "nil") :variablesReference 0}]
+                  (mapv (fn [[n v]]
+                          {:name n :value v :variablesReference 0})
+                        (:locals bp)))}
      {:variables []})))
 
 (defn- send-debug-input

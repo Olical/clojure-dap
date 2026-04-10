@@ -275,7 +275,8 @@
         (let [result (debuggee/stack-trace debuggee {:thread-id 1})]
           (t/is (= {:stackFrames [{:id 1
                                    :name "my.ns/foo"
-                                   :source {:path "/tmp/test.clj"}
+                                   :source {:path "/tmp/test.clj"
+                                            :name "test.clj"}
                                    :line 13
                                    :column 1}]
                     :totalFrames 1}
@@ -314,9 +315,10 @@
       {}
       (fn [debuggee]
         (reset! (:breakpoint-state! debuggee)
-                {:key "k" :locals [["a" "10"] ["b" "20"]]})
+                {:key "k" :debug-value "30" :locals [["a" "10"] ["b" "20"]]})
         (let [result (debuggee/variables debuggee {:variables-reference 1})]
-          (t/is (= {:variables [{:name "a" :value "10" :variablesReference 0}
+          (t/is (= {:variables [{:name "(result)" :value "30" :variablesReference 0}
+                                {:name "a" :value "10" :variablesReference 0}
                                 {:name "b" :value "20" :variablesReference 0}]}
                    result))))))
 
