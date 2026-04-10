@@ -31,7 +31,7 @@ mise run update-dap-schema                         # Fetch latest DAP JSON schem
 - **`protocol.clj`** - Parses/renders DAP wire format. Validates all messages against the DAP JSON schema (converted to Malli). `supported-messages` lists all known message types.
 - **`schema.clj`** - Global Malli registry. Converts DAP JSON schema (`resources/clojure-dap/dap-json-schema.json`) to Malli schemas. Provides `result` wrapper type (value-or-anomaly) and `validate` function.
 - **`server/handler.clj`** - Multimethod `handle-client-input*` dispatches on `:command`. Debuggee handlers use the `with-debuggee` helper which handles the check-debuggee/call/anomaly/respond pattern. Each handler receives `{:input, :debuggee!, :output-stream, :resp}` and returns a seq of response messages.
-- **`debuggee.clj`** - Protocol interface (as a map of functions): `set-breakpoints`, `evaluate`, `threads`, `stack-trace`, `scopes`, `variables`.
+- **`debuggee.clj`** - Protocol interface (as a map of functions): `set-breakpoints`, `evaluate`, `threads`, `stack-trace`, `scopes`, `variables`, `continue`, `next-request`, `step-in`, `step-out`. Each debuggee also carries a `:breakpoint-state!` atom that stores the current CIDER `need-debug-input` message.
 - **`debuggee/nrepl.clj`** - Real implementation connecting to a running nREPL server with CIDER middleware.
 - **`debuggee/fake.clj`** - Test double with configurable responses/failures.
 - **`source.clj`** - Clojure source parsing; inserts `#break` markers at breakpoint lines.
@@ -50,3 +50,7 @@ mise run update-dap-schema                         # Fetch latest DAP JSON schem
 Tests use `clojure.test` with `matcher-combinators` for assertions and `spy/core` for function call tracking. Kaocha runs with randomized order. The `kaocha_hooks.clj` pre-run hook enables Malli instrumentation with pretty error reporting during tests.
 
 nREPL integration tests use a fake nREPL server (`test/clojure_dap/test/fake_nrepl_server.clj`) that stubs ops with configurable canned responses, avoiding real CIDER debugger interactions that would block on breakpoints.
+
+End-to-end tests in `integration_test.clj` exercise the full DAP session flow through `server/run-io-wrapped` with the fake nREPL server.
+
+See `doc/architecture.md` for detailed documentation on how DAP maps to CIDER's nREPL debug protocol.
