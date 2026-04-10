@@ -127,6 +127,39 @@
         (finally
           (.delete tmp-file))))))
 
+(t/deftest evaluate-at-breakpoint
+  (t/testing "can evaluate expressions while stopped at a breakpoint"
+    (let [tmp-file (java.io.File/createTempFile "eval-bp-test" ".clj")]
+      (try
+        (spit tmp-file "(ns test.eval-bp)\n\n(defn add [a b]\n  (+ a b))\n")
+        (with-real-debuggee
+          (fn [debuggee server-port output-stream]
+            (debuggee/set-breakpoints
+             debuggee
+             {:source {:path (str tmp-file)}
+              :breakpoints [{:line 4}]})
+
+            (let [eval-future (real-server/eval-async!
+                               server-port
+                               "(test.eval-bp/add 10 20)")]
+
+              ;; Wait for stopped
+              (let [event (take-event! output-stream)]
+                (t/is (= "stopped" (:event event))))
+
+              ;; Evaluate an expression while stopped
+              ;; This uses the debuggee's nREPL session, not the breakpoint context
+              (let [result (debuggee/evaluate debuggee {:expression "(+ 100 200)"})]
+                (tel/log! :info ["evaluate at breakpoint:" result])
+                (t/is (not (nom/anomaly? result)))
+                (t/is (= "300" (:result result))))
+
+              ;; Continue
+              (debuggee/continue debuggee {:thread-id 1})
+              (deref eval-future 5000 :timeout))))
+        (finally
+          (.delete tmp-file))))))
+
 (t/deftest step-next-and-continue
   (t/testing "can step through code with next, then continue"
     (let [tmp-file (java.io.File/createTempFile "step-test" ".clj")]
