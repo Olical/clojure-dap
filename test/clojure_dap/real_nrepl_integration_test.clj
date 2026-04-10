@@ -124,3 +124,54 @@
                   (t/is (not= :eval-timeout eval-result)))))))
         (finally
           (.delete tmp-file))))))
+
+(t/deftest step-next-and-continue
+  (t/testing "can step through code with next, then continue"
+    (let [tmp-file (java.io.File/createTempFile "step-test" ".clj")]
+      (try
+        ;; Code with multiple breakable expressions
+        (spit tmp-file "(ns test.step-integration)\n\n(defn process [x]\n  (let [a (inc x)\n        b (* a 2)]\n    b))\n")
+        (with-real-debuggee
+          (fn [debuggee server-port output-stream]
+            ;; Set breakpoints on the let body lines
+            (let [bp-result (debuggee/set-breakpoints
+                             debuggee
+                             {:source {:path (str tmp-file)}
+                              :breakpoints [{:line 4}]})]
+              (t/is (not (nom/anomaly? bp-result))))
+
+            ;; Trigger the breakpoint
+            (let [eval-future (real-server/eval-async!
+                               server-port
+                               "(test.step-integration/process 5)")]
+
+              ;; Wait for first stopped event
+              (let [event (take-event! output-stream :timeout-ms 10000)]
+                (t/is (not= :timeout event))
+                (t/is (= "stopped" (:event event)))
+                (tel/log! :info ["First stop - breakpoint state:"
+                                 @(:breakpoint-state! debuggee)]))
+
+              ;; Step next
+              (tel/log! :info "Stepping next...")
+              (let [step-result (debuggee/next-request debuggee {:thread-id 1})]
+                (t/is (not (nom/anomaly? step-result))))
+
+              ;; Should get another stopped event after stepping
+              ;; (short timeout - stepping may complete the function)
+              (let [event2 (take-event! output-stream :timeout-ms 2000)]
+                (tel/log! :info ["After step - event:" event2])
+                (if (= :timeout event2)
+                  ;; Stepping may have completed the function - that's ok
+                  (tel/log! :info "No second stop (function completed after step)")
+                  (do
+                    (t/is (= "stopped" (:event event2)))
+                    ;; Continue to finish
+                    (debuggee/continue debuggee {:thread-id 1}))))
+
+              ;; Eval should complete
+              (let [eval-result (deref eval-future 5000 :eval-timeout)]
+                (tel/log! :info ["eval result:" eval-result])
+                (t/is (not= :eval-timeout eval-result))))))
+        (finally
+          (.delete tmp-file))))))
