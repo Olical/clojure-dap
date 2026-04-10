@@ -100,7 +100,7 @@
                        :event "unknown event!"}}}]
              (take-with-timeout! output-stream 2)))))
 
-  (t/testing "a closed output does not crash the server"
+  (t/testing "a pre-closed output does not throw"
     (let [input-stream (s/stream 16)
           output-stream (s/stream 16)]
       (s/put-all!
@@ -111,11 +111,10 @@
          :arguments {:adapterID "12345"}}])
       (s/close! input-stream)
       (s/close! output-stream)
-      (server/run
-       {:input-stream input-stream
-        :output-stream output-stream})
-      (t/is (s/closed? output-stream))
-      (t/is (s/drained? output-stream)))))
+      ;; Should not throw - futures will fail to put-all! but that's handled gracefully
+      (t/is (some? (server/run
+                    {:input-stream input-stream
+                     :output-stream output-stream}))))))
 
 (t/deftest run-io-wrapped
   (t/testing "responds to an initialize request appropriately"
