@@ -37,6 +37,23 @@
              (util/clean-ansi
               "\033[1m here \033[45m we \033[31m go! \033[0m done.")))))
 
+(t/deftest malli-reporter
+  (t/testing "throws ExceptionInfo with ANSI-cleaned message"
+    (let [reporter (util/malli-reporter)]
+      (try
+        (reporter :malli.instrument/invalid-input
+                  {:fn-name 'test-fn
+                   :input {:schema [:cat :int]
+                           :args ["not-an-int"]
+                           :errors [{:in [0] :schema :int :value "not-an-int"}]}})
+        (t/is false "Should have thrown")
+        (catch clojure.lang.ExceptionInfo e
+          (t/is (string? (ex-message e)))
+          (t/is (not (re-find #"\033\[" (ex-message e)))
+                "Message should not contain ANSI escape codes")
+          (t/is (= :malli.instrument/invalid-input
+                   (:type (ex-data e)))))))))
+
 (t/deftest safe-meta
   (t/testing "returns meta from things that can have it, nil if not"
     (t/is (= {:foo 10} (util/safe-meta (with-meta {} {:foo 10}))))
