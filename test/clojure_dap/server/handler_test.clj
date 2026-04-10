@@ -113,6 +113,10 @@
                :seq protocol/seq-placeholder
                :success true
                :type "response"
+               :body {}}
+              {:type "event"
+               :event "terminated"
+               :seq protocol/seq-placeholder
                :body {}}]
              (handler/handle-client-input
               {:debuggee! (atom (fake-debuggee/create {}))

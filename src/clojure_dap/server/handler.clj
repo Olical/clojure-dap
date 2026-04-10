@@ -139,7 +139,11 @@
 
 (defmethod handle-client-input* "disconnect"
   [{:keys [resp]}]
-  [(resp {})])
+  [(resp {})
+   {:type "event"
+    :event "terminated"
+    :seq protocol/seq-placeholder
+    :body {}}])
 
 (defmethod handle-client-input* "configurationDone"
   [{:keys [resp]}]
