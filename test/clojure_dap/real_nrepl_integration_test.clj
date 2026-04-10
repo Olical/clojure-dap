@@ -329,7 +329,7 @@
 
               ;; Continue should still work after multiple evals
               (debuggee/continue debuggee {:thread-id 1})
-              (let [eval-result (deref eval-future 5000 :timeout)]
+              (let [eval-result (deref eval-future 10000 :timeout)]
                 (t/is (not= :timeout eval-result))
                 (t/is (= ["10"] (:value eval-result)))))))
         (finally

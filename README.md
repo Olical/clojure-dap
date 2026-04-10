@@ -90,7 +90,16 @@ Set breakpoints, hit them, inspect locals, evaluate expressions with access to l
 
 ## Development
 
-See [CLAUDE.md](CLAUDE.md) for commands and [doc/architecture.md](doc/architecture.md) for how DAP maps to CIDER's debug protocol.
+Tools are managed by [mise](https://mise.jdx.dev/). Run `mise install` to set up Java and Clojure CLI.
+
+```bash
+mise run test       # Run all tests
+mise run format     # Format code
+mise run repl       # Start dev REPL
+mise run outdated   # Check for outdated deps
+```
+
+See [doc/architecture.md](doc/architecture.md) for how DAP maps to CIDER's debug protocol.
 
 ## Protocol Support
 
