@@ -90,7 +90,22 @@
                   :arguments {:clojure_dap
                               {:type "fake"
                                :fake {:create-error? true}}}}})))
-        (t/is (nil? @debuggee!)))))
+        (t/is (nil? @debuggee!))))
+
+    (t/testing "success with default debuggee type (nrepl) when no clojure_dap key"
+      (let [debuggee! (atom nil)]
+        (t/is (match?
+               [{:command "attach"
+                 :success false
+                 :type "response"}]
+               (handler/handle-client-input
+                {:debuggee! debuggee!
+                 :output-stream (s/stream)
+                 :input
+                 {:seq 1
+                  :type "request"
+                  :command "attach"
+                  :arguments {}}}))))))
 
   (t/testing "disconnect request"
     (t/is (= [{:command "disconnect"
@@ -322,20 +337,230 @@
                   :seq 1}}))))
 
     (t/testing "socket disconnected"
-      (t/is (= [{:command "evaluate"
+      (t/is (= [{:command "threads"
                  :request_seq 1
                  :seq protocol/seq-placeholder
                  :success false
                  :type "response"
-                 :message "evaluate command failed (:clojure-dap.debuggee.fake/socket-exception)"
+                 :message "threads command failed (:clojure-dap.debuggee.fake/socket-exception)"
                  :body {}}
                 {:body {}, :event "terminated", :seq protocol/seq-placeholder, :type "event"}]
                (handler/handle-client-input
                 {:debuggee! (atom (fake-debuggee/create {:socket-exception? true}))
                  :output-stream (s/stream)
                  :input
-                 {:arguments {:expression "(+ 1 2)"}
-                  :command "evaluate"
+                 {:arguments {}
+                  :command "threads"
+                  :type "request"
+                  :seq 1}})))))
+
+  (t/testing "stackTrace request"
+    (t/testing "before attach"
+      (t/is (match?
+             [{:command "stackTrace"
+               :request_seq 1
+               :seq protocol/seq-placeholder
+               :success false
+               :type "response"
+               :message #"Debuggee not initialised"
+               :body {}}]
+             (handler/handle-client-input
+              {:debuggee! (atom nil)
+               :output-stream (s/stream)
+               :input
+               {:arguments {:threadId 1}
+                :command "stackTrace"
+                :type "request"
+                :seq 1}}))))
+
+    (t/testing "success"
+      (t/is (= [{:command "stackTrace"
+                 :request_seq 1
+                 :seq protocol/seq-placeholder
+                 :success true
+                 :type "response"
+                 :body {}}]
+               (handler/handle-client-input
+                {:debuggee! (atom (fake-debuggee/create {}))
+                 :output-stream (s/stream)
+                 :input
+                 {:arguments {:threadId 1}
+                  :command "stackTrace"
+                  :type "request"
+                  :seq 1}}))))
+
+    (t/testing "failure"
+      (t/is (= [{:command "stackTrace"
+                 :request_seq 1
+                 :seq protocol/seq-placeholder
+                 :success false
+                 :type "response"
+                 :message "stackTrace command failed (:clojure-dap.debuggee.fake/stack-trace-failure)"
+                 :body {}}]
+               (handler/handle-client-input
+                {:debuggee! (atom (fake-debuggee/create {:fail? true}))
+                 :output-stream (s/stream)
+                 :input
+                 {:arguments {:threadId 1}
+                  :command "stackTrace"
+                  :type "request"
+                  :seq 1}}))))
+
+    (t/testing "socket disconnected"
+      (t/is (= [{:command "stackTrace"
+                 :request_seq 1
+                 :seq protocol/seq-placeholder
+                 :success false
+                 :type "response"
+                 :message "stackTrace command failed (:clojure-dap.debuggee.fake/socket-exception)"
+                 :body {}}
+                {:body {}, :event "terminated", :seq protocol/seq-placeholder, :type "event"}]
+               (handler/handle-client-input
+                {:debuggee! (atom (fake-debuggee/create {:socket-exception? true}))
+                 :output-stream (s/stream)
+                 :input
+                 {:arguments {:threadId 1}
+                  :command "stackTrace"
+                  :type "request"
+                  :seq 1}})))))
+
+  (t/testing "scopes request"
+    (t/testing "before attach"
+      (t/is (match?
+             [{:command "scopes"
+               :request_seq 1
+               :seq protocol/seq-placeholder
+               :success false
+               :type "response"
+               :message #"Debuggee not initialised"
+               :body {}}]
+             (handler/handle-client-input
+              {:debuggee! (atom nil)
+               :output-stream (s/stream)
+               :input
+               {:arguments {:frameId 1}
+                :command "scopes"
+                :type "request"
+                :seq 1}}))))
+
+    (t/testing "success"
+      (t/is (= [{:command "scopes"
+                 :request_seq 1
+                 :seq protocol/seq-placeholder
+                 :success true
+                 :type "response"
+                 :body {}}]
+               (handler/handle-client-input
+                {:debuggee! (atom (fake-debuggee/create {}))
+                 :output-stream (s/stream)
+                 :input
+                 {:arguments {:frameId 1}
+                  :command "scopes"
+                  :type "request"
+                  :seq 1}}))))
+
+    (t/testing "failure"
+      (t/is (= [{:command "scopes"
+                 :request_seq 1
+                 :seq protocol/seq-placeholder
+                 :success false
+                 :type "response"
+                 :message "scopes command failed (:clojure-dap.debuggee.fake/scopes-failure)"
+                 :body {}}]
+               (handler/handle-client-input
+                {:debuggee! (atom (fake-debuggee/create {:fail? true}))
+                 :output-stream (s/stream)
+                 :input
+                 {:arguments {:frameId 1}
+                  :command "scopes"
+                  :type "request"
+                  :seq 1}}))))
+
+    (t/testing "socket disconnected"
+      (t/is (= [{:command "scopes"
+                 :request_seq 1
+                 :seq protocol/seq-placeholder
+                 :success false
+                 :type "response"
+                 :message "scopes command failed (:clojure-dap.debuggee.fake/socket-exception)"
+                 :body {}}
+                {:body {}, :event "terminated", :seq protocol/seq-placeholder, :type "event"}]
+               (handler/handle-client-input
+                {:debuggee! (atom (fake-debuggee/create {:socket-exception? true}))
+                 :output-stream (s/stream)
+                 :input
+                 {:arguments {:frameId 1}
+                  :command "scopes"
+                  :type "request"
+                  :seq 1}})))))
+
+  (t/testing "variables request"
+    (t/testing "before attach"
+      (t/is (match?
+             [{:command "variables"
+               :request_seq 1
+               :seq protocol/seq-placeholder
+               :success false
+               :type "response"
+               :message #"Debuggee not initialised"
+               :body {}}]
+             (handler/handle-client-input
+              {:debuggee! (atom nil)
+               :output-stream (s/stream)
+               :input
+               {:arguments {:variablesReference 1}
+                :command "variables"
+                :type "request"
+                :seq 1}}))))
+
+    (t/testing "success"
+      (t/is (= [{:command "variables"
+                 :request_seq 1
+                 :seq protocol/seq-placeholder
+                 :success true
+                 :type "response"
+                 :body {}}]
+               (handler/handle-client-input
+                {:debuggee! (atom (fake-debuggee/create {}))
+                 :output-stream (s/stream)
+                 :input
+                 {:arguments {:variablesReference 1}
+                  :command "variables"
+                  :type "request"
+                  :seq 1}}))))
+
+    (t/testing "failure"
+      (t/is (= [{:command "variables"
+                 :request_seq 1
+                 :seq protocol/seq-placeholder
+                 :success false
+                 :type "response"
+                 :message "variables command failed (:clojure-dap.debuggee.fake/variables-failure)"
+                 :body {}}]
+               (handler/handle-client-input
+                {:debuggee! (atom (fake-debuggee/create {:fail? true}))
+                 :output-stream (s/stream)
+                 :input
+                 {:arguments {:variablesReference 1}
+                  :command "variables"
+                  :type "request"
+                  :seq 1}}))))
+
+    (t/testing "socket disconnected"
+      (t/is (= [{:command "variables"
+                 :request_seq 1
+                 :seq protocol/seq-placeholder
+                 :success false
+                 :type "response"
+                 :message "variables command failed (:clojure-dap.debuggee.fake/socket-exception)"
+                 :body {}}
+                {:body {}, :event "terminated", :seq protocol/seq-placeholder, :type "event"}]
+               (handler/handle-client-input
+                {:debuggee! (atom (fake-debuggee/create {:socket-exception? true}))
+                 :output-stream (s/stream)
+                 :input
+                 {:arguments {:variablesReference 1}
+                  :command "variables"
                   :type "request"
                   :seq 1}}))))))
 
@@ -411,3 +636,19 @@
                        :command "evaluate"
                        :type "request"
                        :seq protocol/seq-placeholder}})))))
+
+(t/deftest render-anomaly
+  (t/testing "renders anomaly into explanation and value"
+    (let [anomaly (schema/validate
+                   ::protocol/message
+                   {:seq "not-a-number"
+                    :type "request"
+                    :command "initialize"
+                    :arguments {:adapterID "12345"}})
+          result (handler/render-anomaly anomaly)]
+      (t/is (string? (:explanation result)))
+      (t/is (= {:seq "not-a-number"
+                :type "request"
+                :command "initialize"
+                :arguments {:adapterID "12345"}}
+               (:value result))))))

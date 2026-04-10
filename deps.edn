@@ -1,37 +1,37 @@
 {:paths ["src" "test" "resources"]
  :deps
- {org.clojure/clojure {:mvn/version "1.11.3"}
-  org.clojure/core.match {:mvn/version "1.1.0"}
-  manifold/manifold {:mvn/version "0.4.3"}
+ {org.clojure/clojure {:mvn/version "1.12.4"}
+  org.clojure/core.match {:mvn/version "1.1.1"}
+  manifold/manifold {:mvn/version "0.5.0"}
   me.raynes/fs {:mvn/version "1.4.6"}
-  nrepl/nrepl {:mvn/version "1.1.2"}
-  metosin/jsonista {:mvn/version "0.3.8"}
+  nrepl/nrepl {:mvn/version "1.6.0"}
+  metosin/jsonista {:mvn/version "1.0.0"}
   camel-snake-kebab/camel-snake-kebab {:mvn/version "0.4.3"}
   tortue/spy {:mvn/version "2.15.0"}
   lambdaisland/ansi {:mvn/version "0.2.37"}
 
-  com.taoensso/timbre {:mvn/version "6.5.0"}
+  com.taoensso/timbre {:mvn/version "6.8.0"}
 
   ;; Ensure all logging flows through Timbre.
   com.fzakaria/slf4j-timbre {:mvn/version "0.4.1"}
-  org.slf4j/log4j-over-slf4j {:mvn/version "2.0.13"}
-  org.slf4j/jul-to-slf4j {:mvn/version "2.0.13"}
-  org.slf4j/jcl-over-slf4j {:mvn/version "2.0.13"}
+  org.slf4j/log4j-over-slf4j {:mvn/version "2.0.17"}
+  org.slf4j/jul-to-slf4j {:mvn/version "2.0.17"}
+  org.slf4j/jcl-over-slf4j {:mvn/version "2.0.17"}
 
   com.cognitect/anomalies {:mvn/version "0.1.12"}
   de.otto/nom {:mvn/version "0.3.0"}
-  luposlip/json-schema {:mvn/version "0.4.5"}
-  metosin/malli {:mvn/version "0.16.1"}}
+  luposlip/json-schema {:mvn/version "0.4.7"}
+  metosin/malli {:mvn/version "0.20.1"}}
 
  :aliases
  {:test {:extra-deps {lambdaisland/kaocha {:mvn/version "1.91.1392"}
-                      nubank/matcher-combinators {:mvn/version "3.9.1"}}
+                      nubank/matcher-combinators {:mvn/version "3.10.0"}}
          :main-opts ["-m" "kaocha.runner"]}
-  :repl {:extra-deps {cider/cider-nrepl {:mvn/version "0.49.0"}
-                      com.bhauman/rebel-readline {:mvn/version "0.1.4"}}}
-  :outdated {:deps {com.github.liquidz/antq {:mvn/version "2.8.1201"}}
+  :repl {:extra-deps {cider/cider-nrepl {:mvn/version "0.58.0"}
+                      com.bhauman/rebel-readline {:mvn/version "0.1.7"}}}
+  :outdated {:deps {com.github.liquidz/antq {:mvn/version "2.11.1276"}}
              :main-opts ["-m" "antq.core"]}
-  :format {:deps {dev.weavejester/cljfmt {:mvn/version "0.12.0"}}
+  :format {:deps {dev.weavejester/cljfmt {:mvn/version "0.16.3"}}
            :main-opts ["-m" "cljfmt.main" "fix"]}}
 
  :mvn/repos

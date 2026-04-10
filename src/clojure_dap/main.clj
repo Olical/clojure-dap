@@ -10,12 +10,6 @@
             [clojure-dap.util :as util]
             [clojure-dap.server :as server]))
 
-(defn foo [a b]
-  (+ a b))
-
-(comment
-  (foo 10 20))
-
 (mx/defn run :- :nil
   "CLI entrypoint to the program, boots the system and handles any CLI args."
   [opts :- :map]

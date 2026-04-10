@@ -1,0 +1,27 @@
+[tools]
+java = "temurin-21"
+clojure = "1.12.4.1629"
+
+[tasks.test]
+description = "Run all tests with Kaocha"
+run = "clojure -M:test"
+
+[tasks.format]
+description = "Format code with cljfmt"
+run = "clojure -M:format"
+
+[tasks.repl]
+description = "Start dev REPL with nREPL + CIDER + Rebel Readline"
+run = "clojure -X:test:repl giants-shoulders.repl/start!"
+
+[tasks.run]
+description = "Run the DAP server (stdin/stdout)"
+run = "clojure -X clojure-dap.main/run"
+
+[tasks.outdated]
+description = "Check for outdated dependencies"
+run = "clojure -M:outdated"
+
+[tasks.update-dap-schema]
+description = "Fetch the latest DAP JSON schema from Microsoft"
+run = "curl https://microsoft.github.io/debug-adapter-protocol/debugAdapterProtocol.json >resources/clojure-dap/dap-json-schema.json"

@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-
-clojure -X:test:repl giants-shoulders.repl/start! "$@"

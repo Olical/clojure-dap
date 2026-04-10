@@ -13,8 +13,9 @@
 (def double-header-sep (str header-sep header-sep))
 
 (def seq-placeholder
-  "This is set automatically when rendering messages. We use a placeholder to pass schema validation."
-  -1)
+  "This is set automatically when rendering messages. We use a placeholder to pass schema validation.
+  Must be >= 1 per the DAP spec."
+  1)
 
 (def supported-messages
   [::initialize-request

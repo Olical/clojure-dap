@@ -37,23 +37,6 @@
     :else {:threads [{:id -1070493020
                       :name "4ee25650-d4dd-4be0-aaa3-ba832562f5e9"}]}))
 
-(schema/define!
-  ::create-opts
-  [:map
-   [:fail? {:optional true} :boolean]
-   [:socket-exception? {:optional true} :boolean]
-   [:create-error? {:optional true} :boolean]])
-
-(mx/defn create :- (schema/result ::debuggee/debuggee)
-  [{:keys [fail? create-error? socket-exception?]} :- ::create-opts]
-  (if create-error?
-    (nom/fail ::oh-no {:message "Creation failed!"})
-    {:fail? fail?
-     :socket-exception? socket-exception?
-     :set-breakpoints (spy/spy set-breakpoints)
-     :evaluate (spy/spy evaluate)
-     :threads (spy/spy threads)}))
-
 (defn stack-trace [this _opts]
   (cond
     (:fail? this)
@@ -83,3 +66,23 @@
     (nom/fail ::socket-exception {:exception (java.net.SocketException.)})
 
     :else {:todo true}))
+
+(schema/define!
+  ::create-opts
+  [:map
+   [:fail? {:optional true} :boolean]
+   [:socket-exception? {:optional true} :boolean]
+   [:create-error? {:optional true} :boolean]])
+
+(mx/defn create :- (schema/result ::debuggee/debuggee)
+  [{:keys [fail? create-error? socket-exception?]} :- ::create-opts]
+  (if create-error?
+    (nom/fail ::oh-no {:message "Creation failed!"})
+    {:fail? fail?
+     :socket-exception? socket-exception?
+     :set-breakpoints (spy/spy set-breakpoints)
+     :evaluate (spy/spy evaluate)
+     :threads (spy/spy threads)
+     :stack-trace (spy/spy stack-trace)
+     :scopes (spy/spy scopes)
+     :variables (spy/spy variables)}))

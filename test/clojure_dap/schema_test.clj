@@ -38,13 +38,119 @@
              :cognitect.anomalies/message "Failed to validate against schema :clojure-dap.schema-test/red"}]
            (schema/validate ::red {:a 26, :b 10})))))
 
+(t/deftest result
+  (t/testing "wraps a schema in [:or schema ::anomaly]"
+    (let [result-schema (schema/result :string)]
+      (t/is (vector? result-schema))
+      (t/is (= :or (first result-schema)))
+      (t/is (= :string (second result-schema)))
+      (t/is (= ::schema/anomaly (nth result-schema 2))))))
+
 (t/deftest dap-schemas
   (t/testing "message includes initialize request and response"
     (t/is (match?
            nil
            (schema/validate
             ::protocol/message
-            {:seq 0
+            {:seq 1
              :type "request"
              :command "initialize"
-             :arguments {:adapterID "12345"}})))))
+             :arguments {:adapterID "12345"}}))))
+
+  (t/testing "validates initialize response"
+    (t/is (nil? (schema/validate
+                 ::protocol/message
+                 {:seq 1
+                  :type "response"
+                  :request_seq 1
+                  :command "initialize"
+                  :success true
+                  :body {:supportsCancelRequest false
+                         :supportsConfigurationDoneRequest true}}))))
+
+  (t/testing "validates initialized event"
+    (t/is (nil? (schema/validate
+                 ::protocol/message
+                 {:seq 1
+                  :type "event"
+                  :event "initialized"}))))
+
+  (t/testing "validates output event"
+    (t/is (nil? (schema/validate
+                 ::protocol/message
+                 {:seq 1
+                  :type "event"
+                  :event "output"
+                  :body {:output "hello world"
+                         :category "console"}}))))
+
+  (t/testing "validates stopped event"
+    (t/is (nil? (schema/validate
+                 ::protocol/message
+                 {:seq 1
+                  :type "event"
+                  :event "stopped"
+                  :body {:reason "breakpoint"
+                         :threadId 1}}))))
+
+  (t/testing "validates terminated event"
+    (t/is (nil? (schema/validate
+                 ::protocol/message
+                 {:seq 1
+                  :type "event"
+                  :event "terminated"
+                  :body {}}))))
+
+  (t/testing "validates attach request"
+    (t/is (nil? (schema/validate
+                 ::protocol/message
+                 {:seq 1
+                  :type "request"
+                  :command "attach"
+                  :arguments {}}))))
+
+  (t/testing "validates disconnect request"
+    (t/is (nil? (schema/validate
+                 ::protocol/message
+                 {:seq 1
+                  :type "request"
+                  :command "disconnect"}))))
+
+  (t/testing "validates setBreakpoints request"
+    (t/is (nil? (schema/validate
+                 ::protocol/message
+                 {:seq 1
+                  :type "request"
+                  :command "setBreakpoints"
+                  :arguments {:source {:path "/tmp/foo.clj"}
+                              :breakpoints [{:line 5}]}}))))
+
+  (t/testing "validates threads request"
+    (t/is (nil? (schema/validate
+                 ::protocol/message
+                 {:seq 1
+                  :type "request"
+                  :command "threads"}))))
+
+  (t/testing "rejects invalid seq (must be >= 1)"
+    (t/is (nom/anomaly? (schema/validate
+                         ::protocol/message
+                         {:seq 0
+                          :type "request"
+                          :command "initialize"
+                          :arguments {:adapterID "12345"}}))))
+
+  (t/testing "rejects invalid type"
+    (t/is (nom/anomaly? (schema/validate
+                         ::protocol/message
+                         {:seq 1
+                          :type "invalid"
+                          :command "initialize"
+                          :arguments {:adapterID "12345"}}))))
+
+  (t/testing "rejects missing seq"
+    (t/is (nom/anomaly? (schema/validate
+                         ::protocol/message
+                         {:type "request"
+                          :command "initialize"
+                          :arguments {:adapterID "12345"}})))))

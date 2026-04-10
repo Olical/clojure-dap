@@ -16,104 +16,86 @@
 
 (defn set-breakpoints [this {:keys [source breakpoints]}]
   (nom/try-nom
-    (let [path (:path source)
-          source (slurp path)
-          client (get-in this [:connection :client])
-          instrumented-source (source/insert-breakpoints
-                               {:source source
-                                :breakpoints breakpoints})
-          forms (source/read-all-forms instrumented-source)
-          results
-          (reduce
-           (fn [results {:keys [form position]}]
-             (let [prev-ns (:ns (last results))]
-               (conj
-                results
-                (nrepl/combine-responses
-                 (nrepl/message
-                  client
-                  (cond->
-                   {:op "eval"
-                    :file path
-                    :code form
-                    :line (:line position)
-                    :column (:column position)}
-                    prev-ns (assoc :ns prev-ns)))))))
-           []
-           forms)]
-      (log/debug
-       "set-breakpoints results"
-       {:instrumented-source instrumented-source
-        :result results})
-      {:breakpoints
-       (mapv
-        (fn [breakpoint]
-          (assoc breakpoint :verified true))
-        breakpoints)})))
+   (let [path (:path source)
+         source (slurp path)
+         client (get-in this [:connection :client])
+         instrumented-source (source/insert-breakpoints
+                              {:source source
+                               :breakpoints breakpoints})
+         forms (source/read-all-forms instrumented-source)
+         results
+         (reduce
+          (fn [results {:keys [form position]}]
+            (let [prev-ns (:ns (last results))]
+              (conj
+               results
+               (nrepl/combine-responses
+                (nrepl/message
+                 client
+                 (cond->
+                  {:op "eval"
+                   :file path
+                   :code form
+                   :line (:line position)
+                   :column (:column position)}
+                   prev-ns (assoc :ns prev-ns)))))))
+          []
+          forms)]
+     (log/debug
+      "set-breakpoints results"
+      {:instrumented-source instrumented-source
+       :result results})
+     {:breakpoints
+      (mapv
+       (fn [breakpoint]
+         (assoc breakpoint :verified true))
+       breakpoints)})))
 
 (defn evaluate [this {:keys [expression]}]
   (nom/try-nom
-    (let [messages (nrepl/message
-                    (get-in this [:connection :client])
-                    {:op "eval"
-                     :code expression})]
-      (log/debug "evaluate results" messages)
-      {:result
-       (->> messages
-            (keep (fn [result]
-                    (some result #{:out :err :value})))
-            (str/join))})))
+   (let [messages (nrepl/message
+                   (get-in this [:connection :client])
+                   {:op "eval"
+                    :code expression})]
+     (log/debug "evaluate results" messages)
+     {:result
+      (->> messages
+           (keep (fn [result]
+                   (some result #{:out :err :value})))
+           (str/join))})))
 
 ;; TODO Don't treat sessions as threads, let's actually get the thread IDs.
 (defn threads [this]
   (nom/try-nom
-    (let [messages (nrepl/message
-                    (get-in this [:connection :client])
-                    {:op "ls-sessions"})
-          [{:keys [sessions]}] messages]
-      (log/debug "ls-sessions results" messages)
-      {:threads
-       (map
-        (fn [session-id]
-          {:id (hash session-id)
-           :name session-id})
-        sessions)})))
+   (let [messages (nrepl/message
+                   (get-in this [:connection :client])
+                   {:op "ls-sessions"})
+         [{:keys [sessions]}] messages]
+     (log/debug "ls-sessions results" messages)
+     {:threads
+      (map
+       (fn [session-id]
+         {:id (hash session-id)
+          :name session-id})
+       sessions)})))
 
 (defn stack-trace [this opts]
   (nom/try-nom
-    (let [messages []]
-      (log/debug "stack-trace results" messages)
-      {:todo true})))
+   (let [messages []]
+     (log/debug "stack-trace results" messages)
+     {:todo true})))
 
 (defn scopes [this opts]
   (nom/try-nom
-    (let [messages []]
-      (log/debug "scopes results" messages)
-      {:todo true})))
+   (let [messages []]
+     (log/debug "scopes results" messages)
+     {:todo true})))
 
 (defn variables [this opts]
   (nom/try-nom
-    (let [messages []]
-      (log/debug "variables results" messages)
-      {:todo true})))
-
-(comment
-  ;; Example from the init-debugger message
-  {:debug-value "30",
-   :original-ns "clojure-dap.main",
-   :key "cc2448d9-4858-4199-8536-dba04c491131",
-   :locals [["a" "10"] ["b" "20"]],
-   :file "/home/olical/repos/Olical/clojure-dap/src/clojure_dap/main.clj",
-   :column 1,
-   :input-type ["continue" "locals" "inspect" "trace" "here" "continue-all" "next" "out" "inject" "stacktrace" "inspect-prompt" "quit" "in" "eval"],
-   :prompt [],
-   :coor [3],
-   :line 13,
-   :status ["need-debug-input"],
-   :id "40e61455-0430-45b5-800c-d8bff1faef9b",
-   :code "(defn foo [a b]\\n#break   (+ a b))",
-   :original-id "ba89be97-bfff-4984-bf16-6718ac10a0cd",
-   :session "4ee25650-d4dd-4be0-aaa3-ba832562f5e9"})
+   (let [messages []]
+     (log/debug "variables results" messages)
+     {:todo true})))
 
 (mx/defn handle-init-debugger-output
   :- [:maybe [:sequential ::protocol/message]]
@@ -149,29 +131,31 @@
          root-dir "."}} :- ::create-opts
    {:keys [output-stream]} :- ::extra-opts]
   (nom/try-nom
-    (let [port (or port
-                   (let [f (io/file root-dir port-file-name)]
-                     (when (rfs/readable? f)
-                       (parse-long (slurp f)))))
-          transport (nrepl/connect
-                     {:host host
-                      :port port})
-          raw-client (nrepl/client transport Long/MAX_VALUE)
-          client (nrepl/client-session
-                  raw-client
-                  {:session (nrepl/new-session raw-client)})]
+   (let [port (or port
+                  (let [f (io/file root-dir port-file-name)]
+                    (when (rfs/readable? f)
+                      (parse-long (slurp f)))))
+         transport (nrepl/connect
+                    {:host host
+                     :port port})
+         raw-client (nrepl/client transport Long/MAX_VALUE)
+         client (nrepl/client-session
+                 raw-client
+                 {:session (nrepl/new-session raw-client)})]
 
-      (util/with-thread ::init-debugger
-        @(s/connect-via
-          (s/->source (nrepl/message client {:op "init-debugger"}))
-          (fn [message]
-            (log/info "init-debugger output" message)
-            (s/put-all! output-stream (handle-init-debugger-output message)))
-          output-stream))
+     (util/with-thread ::init-debugger
+       @(s/connect-via
+         (s/->source (nrepl/message client {:op "init-debugger"}))
+         (fn [message]
+           (log/info "init-debugger output" message)
+           (s/put-all! output-stream (handle-init-debugger-output message)))
+         output-stream))
 
-      {:connection {:transport transport
-                    :client client}
-       :set-breakpoints set-breakpoints
-       :evaluate evaluate
-       :threads threads
-       :stack-trace stack-trace})))
+     {:connection {:transport transport
+                   :client client}
+      :set-breakpoints set-breakpoints
+      :evaluate evaluate
+      :threads threads
+      :stack-trace stack-trace
+      :scopes scopes
+      :variables variables})))

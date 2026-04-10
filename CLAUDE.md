@@ -8,13 +8,16 @@ clojure-dap is a Debug Adapter Protocol (DAP) server for Clojure, bridging DAP-c
 
 ## Commands
 
+Tools (Java, Clojure CLI) are managed by [mise](https://mise.jdx.dev/). Run `mise install` to set up the environment.
+
 ```bash
-./script/kaocha           # Run all tests (Kaocha runner)
-./script/kaocha --focus clojure-dap.protocol-test  # Run a single test namespace
-./script/format           # Format code (cljfmt)
-./script/repl             # Start dev REPL (nREPL + CIDER + Rebel Readline)
-./script/run              # Run the DAP server (reads stdin, writes stdout)
-./script/outdated         # Check for outdated dependencies
+mise run test                                      # Run all tests (Kaocha runner)
+mise run test -- --focus clojure-dap.protocol-test  # Run a single test namespace
+mise run format                                    # Format code (cljfmt)
+mise run repl                                      # Start dev REPL (nREPL + CIDER + Rebel Readline)
+mise run run                                       # Run the DAP server (reads stdin, writes stdout)
+mise run outdated                                  # Check for outdated dependencies
+mise run update-dap-schema                         # Fetch latest DAP JSON schema
 ```
 
 ## Architecture

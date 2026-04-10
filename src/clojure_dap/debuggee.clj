@@ -8,7 +8,10 @@
   [:map
    [:set-breakpoints [:fn fn?]]
    [:evaluate [:fn fn?]]
-   [:threads [:fn fn?]]])
+   [:threads [:fn fn?]]
+   [:stack-trace [:fn fn?]]
+   [:scopes [:fn fn?]]
+   [:variables [:fn fn?]]])
 
 (mx/defn set-breakpoints :- (schema/result ::protocol/message-ish)
   [this :- ::debuggee
