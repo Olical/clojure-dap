@@ -172,82 +172,66 @@
   {:success false
    :message "Debuggee not initialised, you must attach to one first"})
 
-(defmethod handle-client-input* "setBreakpoints"
-  [{:keys [debuggee resp input] :as opts}]
+(defn- with-debuggee
+  "Common pattern for handlers that require an attached debuggee.
+  Calls (debuggee-fn debuggee) to get the result, handles anomalies,
+  and wraps the result with (body-fn result) to build the response body."
+  [{:keys [debuggee resp] :as opts} debuggee-fn body-fn]
   (if debuggee
-    (let [res (debuggee/set-breakpoints
-               debuggee
-               {:source (get-in input [:arguments :source])
-                :breakpoints (get-in input [:arguments :breakpoints])})]
+    (let [res (debuggee-fn debuggee)]
       (or (handle-anomaly res opts)
-          [(resp {:body res})]))
+          [(resp {:body (body-fn res)})]))
     [(resp missing-debuggee-warning)]))
+
+(defmethod handle-client-input* "setBreakpoints"
+  [{:keys [input] :as opts}]
+  (with-debuggee opts
+    #(debuggee/set-breakpoints % {:source (get-in input [:arguments :source])
+                                  :breakpoints (get-in input [:arguments :breakpoints])})
+    identity))
 
 (defmethod handle-client-input* "evaluate"
-  [{:keys [debuggee resp input] :as opts}]
-  (if debuggee
-    (let [res (debuggee/evaluate
-               debuggee
-               {:expression (get-in input [:arguments :expression])})]
-      (or (handle-anomaly res opts)
-          [(resp
-            {:body
-             {:variablesReference 0
-              :result (:result res)}})]))
-    [(resp missing-debuggee-warning)]))
+  [{:keys [input] :as opts}]
+  (with-debuggee opts
+    #(debuggee/evaluate % {:expression (get-in input [:arguments :expression])})
+    (fn [res] {:variablesReference 0 :result (:result res)})))
 
 (defmethod handle-client-input* "threads"
-  [{:keys [debuggee resp _input] :as opts}]
-  (if debuggee
-    (let [res (debuggee/threads debuggee)]
-      (or (handle-anomaly res opts)
-          [(resp
-            {:body {:threads (:threads res)}})]))
-    [(resp missing-debuggee-warning)]))
+  [opts]
+  (with-debuggee opts
+    debuggee/threads
+    (fn [res] {:threads (:threads res)})))
+
+(defn- kebab-case-arguments
+  "Extract and kebab-case argument keys from a DAP input message."
+  [input ks]
+  (-> (get input :arguments)
+      (select-keys ks)
+      (update-keys csk/->kebab-case)))
+
+(defn- kebab-case-format
+  "Kebab-case the :format sub-map if present."
+  [opts]
+  (cond-> opts
+    (:format opts)
+    (update :format update-keys csk/->kebab-case)))
 
 (defmethod handle-client-input* "stackTrace"
-  [{:keys [debuggee resp input] :as opts}]
-  (if debuggee
-    (let [stack-trace-opts
-          (-> (get input :arguments)
-              (select-keys #{:threadId :startFrame :levels :format})
-              (update-keys csk/->kebab-case))
-
-          res (debuggee/stack-trace
-               debuggee
-               (cond-> stack-trace-opts
-                 (:format stack-trace-opts)
-                 (update :format update-keys csk/->kebab-case)))]
-      (or (handle-anomaly res opts)
-          [(resp
-            {:body {}})]))
-    [(resp missing-debuggee-warning)]))
+  [{:keys [input] :as opts}]
+  (with-debuggee opts
+    #(debuggee/stack-trace % (kebab-case-format
+                              (kebab-case-arguments input #{:threadId :startFrame :levels :format})))
+    (constantly {})))
 
 (defmethod handle-client-input* "scopes"
-  [{:keys [debuggee resp input] :as opts}]
-  (if debuggee
-    (let [res (debuggee/scopes
-               debuggee
-               {:frame-id (get-in input [:arguments :frameId])})]
-      (or (handle-anomaly res opts)
-          [(resp
-            {:body {}})]))
-    [(resp missing-debuggee-warning)]))
+  [{:keys [input] :as opts}]
+  (with-debuggee opts
+    #(debuggee/scopes % {:frame-id (get-in input [:arguments :frameId])})
+    (constantly {})))
 
 (defmethod handle-client-input* "variables"
-  [{:keys [debuggee resp input] :as opts}]
-  (if debuggee
-    (let [variables-opts
-          (-> (get input :arguments)
-              (select-keys #{:variablesReference :filter :start :count :format})
-              (update-keys csk/->kebab-case))
-
-          res (debuggee/variables
-               debuggee
-               (cond-> variables-opts
-                 (:format variables-opts)
-                 (update :format update-keys csk/->kebab-case)))]
-      (or (handle-anomaly res opts)
-          [(resp
-            {:body {}})]))
-    [(resp missing-debuggee-warning)]))
+  [{:keys [input] :as opts}]
+  (with-debuggee opts
+    #(debuggee/variables % (kebab-case-format
+                            (kebab-case-arguments input #{:variablesReference :filter :start :count :format})))
+    (constantly {})))
