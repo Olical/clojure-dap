@@ -37,7 +37,7 @@ When a breakpoint is hit, CIDER sends a message with status `need-debug-input`:
  :coor        [3 2 0]                  ; Position within instrumented form (AST path)
  :locals      [["a" "10"] ["b" "20"]]  ; Local variable names and string values
  :file        "/path/to/file.clj"      ; Source file
- :line        13                        ; Line number
+ :line        13                        ; Line number (of the FORM, not the #break)
  :column      1                         ; Column number
  :code        "(defn foo [a b] ...)"   ; The instrumented source form
  :input-type  ["continue" "next" ...]  ; Available debug commands
@@ -74,10 +74,14 @@ When `need-debug-input` arrives, clojure-dap stores the full message as the curr
 
 | DAP Request | Data Source |
 |-------------|-------------|
-| `stackTrace` | `:file`, `:line`, `:column` from breakpoint state |
+| `stackTrace` | `:file`, corrected `:line` (see below), `:column` from breakpoint state |
 | `scopes` | One "Locals" scope, referencing the breakpoint's `:locals` |
 | `variables` | The `:locals` array `[["name" "value"] ...]` |
 | `evaluate` | Sends `eval` to nREPL in the breakpoint's namespace context |
+
+### Line Number Correction
+
+CIDER reports `:line` as the start line of the instrumented form (e.g. the `defn`), not the actual `#break` position. clojure-dap corrects this by finding the `#break` marker positions in `:code` and using the `:coor` depth to select the right one. With multiple `#break` markers, deeper `coor` paths select later breaks.
 
 ### Variable References
 
