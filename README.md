@@ -1,27 +1,33 @@
 # Clojure CIDER DAP server
 
-A Debug Adapter Protocol server for Clojure, enabling rich debugging UIs in Neovim, Helix, VS Code, and any other DAP-capable editor. Uses CIDER's nREPL debug middleware under the hood.
+A Debug Adapter Protocol server for Clojure. Enables debugging UIs in Neovim, Helix, VS Code, and any other DAP-capable editor via CIDER's nREPL debug middleware.
 
-> **Beta software.** This works end-to-end but is under active development. Please try it and [report issues or feedback](https://github.com/Olical/clojure-dap/issues)!
-
-## Features
-
-- Set breakpoints and hit them
-- Inspect local variables when stopped
-- Evaluate expressions with access to locals at the breakpoint
-- Step over, step in, step out, continue
-- Works with any DAP client over stdin/stdout
+> **Beta software.** This works end-to-end but is under active development. [Feedback welcome.](https://github.com/Olical/clojure-dap/issues)
 
 ## Prerequisites
 
-- A running Clojure nREPL server with [CIDER middleware](https://github.com/clojure-emacs/cider-nrepl)
+- A running nREPL server with [CIDER middleware](https://github.com/clojure-emacs/cider-nrepl)
 - Java 21+ and Clojure CLI
+
+## Installation
+
+For now, clone the repo and reference it locally. Future plans include Clojars publishing and GraalVM native image distribution once things stabilise.
+
+```bash
+git clone https://github.com/Olical/clojure-dap.git
+```
+
+The server is started via the Clojure CLI with a local dep:
+
+```bash
+clojure -Sdeps '{:deps {clojure-dap/clojure-dap {:local/root "/path/to/clojure-dap"}}}' -X clojure-dap.main/run
+```
 
 ## Editor Setup
 
 ### Neovim
 
-Requires [nvim-dap](https://github.com/mfussenegger/nvim-dap). Optionally add [nvim-dap-ui](https://github.com/rcarriga/nvim-dap-ui) for a full debugging UI.
+Requires [nvim-dap](https://github.com/mfussenegger/nvim-dap). See its docs for keybindings and UI options like [nvim-dap-ui](https://github.com/rcarriga/nvim-dap-ui).
 
 ```lua
 local dap = require('dap')
@@ -44,18 +50,6 @@ dap.configurations.clojure = {
 }
 ```
 
-Keybindings (example):
-
-| Key | Action |
-|-----|--------|
-| `<leader>db` | Toggle breakpoint |
-| `<leader>dc` | Continue / start debug session |
-| `<leader>dn` | Step over |
-| `<leader>di` | Step into |
-| `<leader>do` | Step out |
-| `<leader>dr` | Open DAP REPL |
-| `<leader>dx` | Terminate session |
-
 ### Helix
 
 Helix has built-in (experimental) DAP support. Add to `~/.config/helix/languages.toml`:
@@ -68,7 +62,6 @@ name = "clojure"
 name = "clojure-dap"
 transport = "stdio"
 command = "clojure"
-# Adjust the path to your clojure-dap checkout
 args = ["-Sdeps", "{:deps {clojure-dap/clojure-dap {:local/root \"/path/to/clojure-dap\"}}}", "-X", "clojure-dap.main/run"]
 
 [[language.debugger.templates]]
@@ -77,135 +70,54 @@ request = "attach"
 args = {}
 ```
 
-Use `:debug-start` to begin a session.
-
 ### VS Code
 
-A VS Code extension is not yet available. You can use a generic DAP extension with:
-
-```json
-{
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Attach to nREPL",
-      "type": "clojure-dap",
-      "request": "attach"
-    }
-  ]
-}
-```
+A VS Code extension is needed to register the adapter. Contributions welcome.
 
 ## Usage
 
-1. Start your Clojure project's nREPL server with CIDER middleware
-2. Open a Clojure file in your editor and set breakpoints
-3. Start the debug adapter (attach to nREPL)
-4. Trigger the breakpointed code (e.g. from a REPL)
+1. Start your nREPL server with CIDER middleware
+2. Set breakpoints in your editor
+3. Attach the debug adapter
+4. Trigger the breakpointed code from a REPL
 5. Inspect variables, evaluate expressions, step through code
-6. Continue or disconnect
 
-### Attach Arguments
+By default clojure-dap connects to `127.0.0.1` and reads the port from `.nrepl-port`. You can pass explicit connection options via the attach arguments (see [doc/editor-setup.md](doc/editor-setup.md)).
 
-The `attach` request accepts an optional `clojure_dap` argument:
+## What's Supported
 
-```json
-{
-  "clojure_dap": {
-    "type": "nrepl",
-    "nrepl": {
-      "host": "127.0.0.1",
-      "port": 7888
-    }
-  }
-}
-```
-
-If omitted, clojure-dap connects to `127.0.0.1` and reads the port from `.nrepl-port` in the current directory.
+Set breakpoints, hit them, inspect locals, evaluate expressions with access to local variables, step over/in/out, continue. See the protocol checklist below for details.
 
 ## Development
 
-See [CLAUDE.md](CLAUDE.md) for development commands and architecture overview. See [doc/architecture.md](doc/architecture.md) for details on how DAP maps to CIDER's nREPL debug protocol.
+See [CLAUDE.md](CLAUDE.md) for commands and [doc/architecture.md](doc/architecture.md) for how DAP maps to CIDER's debug protocol.
 
 ## Protocol Support
-
-### Base Protocol
-
-- [ ] Cancel
-- [x] ErrorResponse
-- [x] Event
-- [x] ProtocolMessage
-- [x] Request
-- [x] Response
-
-### Events
-
-- [ ] Breakpoint
-- [ ] Capabilities
-- [ ] Continued
-- [ ] Exited
-- [x] Initialized
-- [ ] Invalidated
-- [ ] LoadedSource
-- [ ] Memory
-- [ ] Module
-- [x] Output
-- [ ] Process
-- [ ] ProgressEnd
-- [ ] ProgressStart
-- [ ] ProgressUpdate
-- [x] Stopped
-- [x] Terminated
-- [ ] Thread
 
 ### Requests
 
 - [x] Attach
-- [ ] BreakpointLocations
-- [ ] Completions
 - [x] ConfigurationDone
 - [x] Continue
-- [ ] DataBreakpointInfo
-- [ ] Disassemble
 - [x] Disconnect
 - [x] Evaluate
-- [ ] ExceptionInfo
-- [ ] Goto
-- [ ] GotoTargets
 - [x] Initialize
-- [ ] Launch
-- [ ] LoadedSources
-- [ ] Modules
 - [x] Next
-- [ ] Pause
-- [ ] ReadMemory
-- [ ] Restart
-- [ ] RestartFrame
-- [ ] ReverseContinue
 - [x] Scopes
 - [x] SetBreakpoints
-- [ ] SetDataBreakpoints
 - [x] SetExceptionBreakpoints
-- [ ] SetExpression
-- [ ] SetFunctionBreakpoints
-- [ ] SetInstructionBreakpoints
-- [ ] SetVariable
-- [ ] Source
 - [x] StackTrace
-- [ ] StepBack
 - [x] StepIn
-- [ ] StepInTargets
 - [x] StepOut
-- [ ] Terminate
-- [ ] TerminateThreads
 - [x] Threads
 - [x] Variables
-- [ ] WriteMemory
 
-### Reverse Requests
+### Events
 
-- [ ] RunInTerminal
-- [ ] StartDebugging
+- [x] Initialized
+- [x] Output
+- [x] Stopped
+- [x] Terminated
 
 ## License
 
