@@ -295,3 +295,51 @@
                 (t/is (not= :eval-timeout eval-result))))))
         (finally
           (.delete tmp-file))))))
+
+(t/deftest multiple-evals-then-continue
+  (t/testing "can evaluate multiple expressions then continue"
+    (let [tmp-file (java.io.File/createTempFile "multi-eval-test" ".clj")]
+      (try
+        (spit tmp-file "(ns test.multi-eval)\n\n(defn calc [x y]\n  (+ x y))\n")
+        (with-real-debuggee
+          (fn [debuggee server-port output-stream]
+            (debuggee/set-breakpoints
+             debuggee
+             {:source {:path (str tmp-file)}
+              :breakpoints [{:line 4}]})
+
+            (let [eval-future (real-server/eval-async!
+                               server-port
+                               "(test.multi-eval/calc 3 7)")]
+
+              (let [event (take-event! output-stream)]
+                (t/is (= "stopped" (:event event))))
+
+              ;; First eval: check x
+              (let [result (debuggee/evaluate debuggee {:expression "x"})]
+                (t/is (= "3" (:result result))))
+
+              ;; Second eval: check y
+              (let [result (debuggee/evaluate debuggee {:expression "y"})]
+                (t/is (= "7" (:result result))))
+
+              ;; Third eval: compute something
+              (let [result (debuggee/evaluate debuggee {:expression "(* x y)"})]
+                (t/is (= "21" (:result result))))
+
+              ;; Continue should still work after multiple evals
+              (debuggee/continue debuggee {:thread-id 1})
+              (let [eval-result (deref eval-future 5000 :timeout)]
+                (t/is (not= :timeout eval-result))
+                (t/is (= ["10"] (:value eval-result)))))))
+        (finally
+          (.delete tmp-file))))))
+
+(t/deftest evaluate-not-at-breakpoint
+  (t/testing "evaluate falls back to regular eval when not at a breakpoint"
+    (with-real-debuggee
+      (fn [debuggee _server-port _output-stream]
+        ;; No breakpoint set, just evaluate
+        (let [result (debuggee/evaluate debuggee {:expression "(+ 100 200)"})]
+          (t/is (not (nom/anomaly? result)))
+          (t/is (= "300" (:result result))))))))
