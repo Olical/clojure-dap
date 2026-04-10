@@ -17,7 +17,11 @@
 (def initialised-response-body
   {:supportsCancelRequest false
    :supportsConfigurationDoneRequest true
-   :supportsSingleThreadExecutionRequests true})
+   :supportsSingleThreadExecutionRequests true
+   :supportsEvaluateForHovers true
+   :supportsSteppingGranularity false
+   :supportsSetVariable false
+   :supportsRestartRequest false})
 
 (mx/defn socket-exception-anomaly?
   "Given an anomaly, returs true if it's caused by a java.net.SocketException."

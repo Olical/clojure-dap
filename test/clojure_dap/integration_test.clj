@@ -4,7 +4,6 @@
   (:require [clojure.test :as t]
             [clojure.string :as str]
             [clojure.java.io :as io]
-            [matcher-combinators.test]
             [manifold.stream :as s]
             [nrepl.server :as nrepl-server]
             [clojure-dap.server :as server]
@@ -15,21 +14,6 @@
   "Render a seq of DAP messages into their wire format string."
   [messages]
   (str/join (map protocol/render-message messages)))
-
-(defn- parse-output
-  "Parse all DAP messages from a wire format output string."
-  [output-str]
-  (when (seq output-str)
-    (with-open [stream (s/stream)]
-      (s/put-all! stream (char-array output-str))
-      (s/close! stream)
-      (loop [messages []]
-        (let [msg (try
-                    (clojure-dap.stream/read-message stream)
-                    (catch Exception _e nil))]
-          (if (or (nil? msg) (clojure.core/not (map? msg)))
-            messages
-            (recur (conj messages msg))))))))
 
 (t/deftest full-debug-session
   (t/testing "initialize, attach with fake debuggee, and basic commands"
