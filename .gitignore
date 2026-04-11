@@ -5,3 +5,4 @@
 /.lsp/
 .rebel_readline_history
 *.vsix
+target/
