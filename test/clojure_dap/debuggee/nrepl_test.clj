@@ -40,24 +40,29 @@
       (t/is (= state new-state))
       (t/is (nil? events))))
 
-  (t/testing "awaiting-eval-result -> stopped: delivers result to promise"
+  (t/testing "awaiting-eval-result -> stopped: returns pending delivery"
     (let [result-promise (promise)
           state {:state :awaiting-eval-result
                  :breakpoint {:key "old"}
                  :eval-expression "(inc a)"
                  :eval-result! result-promise}
-          [new-state events] (nrepl-debuggee/handle-init-debugger-output
-                              state
-                              {:status ["need-debug-input"]
-                               :session "s"
-                               :key "new-key"
-                               :debug-value "11"
-                               :locals [["a" "10"]]}
-                              nil nil)]
+          [new-state events pending-delivery] (nrepl-debuggee/handle-init-debugger-output
+                                               state
+                                               {:status ["need-debug-input"]
+                                                :session "s"
+                                                :key "new-key"
+                                                :debug-value "11"
+                                                :locals [["a" "10"]]}
+                                               nil nil)]
       (t/is (= :stopped (:state new-state)))
       (t/is (= "new-key" (get-in new-state [:breakpoint :key])))
       (t/is (nil? events))
-      (t/is (= {:result "11"} (deref result-promise 100 :timeout))))))
+      ;; Promise should NOT be delivered yet - caller delivers after state reset
+      (t/is (not (realized? result-promise)))
+      (let [[p v] pending-delivery]
+        (t/is (= result-promise p))
+        (deliver p v)
+        (t/is (= {:result "11"} @result-promise))))))
 
 (t/deftest breakpoint-line-test
   (t/testing "single break - adjusts line from form start to break position"

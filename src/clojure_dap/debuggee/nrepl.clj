@@ -81,7 +81,9 @@
 
 (defn handle-init-debugger-output
   "State machine for processing init-debugger messages.
-  Returns a vector of [new-debug-state dap-events-to-emit].
+  Returns a vector of [new-debug-state dap-events-to-emit pending-delivery].
+  pending-delivery is [promise value] or nil - the caller must deliver AFTER
+  resetting state to avoid races.
 
   transport and session-id are used to send debug-input messages directly
   on the wire without consuming responses (which would steal from the
@@ -154,16 +156,18 @@
         :awaiting-eval-result
         (let [bp (extract-breakpoint message)]
           (tel/log! :debug ["State machine: eval complete, back at breakpoint"])
-          ;; Deliver the debug-value as the eval result
-          (when-let [p (:eval-result! debug-state)]
-            (deliver p {:result (or (:debug-value message) "nil")}))
           ;; We're back at the breakpoint - don't emit stopped again,
-          ;; the client still thinks we're stopped
+          ;; the client still thinks we're stopped.
+          ;; Return the pending delivery so the caller can deliver AFTER
+          ;; resetting state (avoids race where evaluate returns before
+          ;; the new breakpoint key is visible).
           [{:state :stopped
             :breakpoint bp
             :eval-expression nil
             :eval-result! nil}
-           nil])))))
+           nil
+           (when-let [p (:eval-result! debug-state)]
+             [p {:result (or (:debug-value message) "nil")}])])))))
 
 ;; ---------------------------------------------------------------------------
 ;; Debuggee interface methods
@@ -368,9 +372,11 @@
            (when message
              (when (= (:session message) debug-session-id)
                (tel/log! :info ["init-debugger output" message])
-               (let [[new-state events] (handle-init-debugger-output
-                                         @debug-state! message debug-transport debug-session-id)]
+               (let [[new-state events pending-delivery] (handle-init-debugger-output
+                                                          @debug-state! message debug-transport debug-session-id)]
                  (reset! debug-state! new-state)
+                 (when-let [[p v] pending-delivery]
+                   (deliver p v))
                  (when events
                    @(s/put-all! output-stream events))))
              (recur)))))
