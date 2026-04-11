@@ -27,6 +27,14 @@ run = "clojure -M:outdated"
 description = "Fetch the latest DAP JSON schema from Microsoft"
 run = "curl https://microsoft.github.io/debug-adapter-protocol/debugAdapterProtocol.json >resources/clojure-dap/dap-json-schema.json"
 
+[tasks.jar]
+description = "Build the library JAR for Clojars"
+run = "clojure -T:build jar"
+
+[tasks.deploy]
+description = "Deploy to Clojars"
+run = "clojure -T:build deploy"
+
 [tasks.vscode-package]
 description = "Package the VS Code extension as a .vsix"
 dir = "vscode-extension"

@@ -33,7 +33,10 @@
   :outdated {:deps {com.github.liquidz/antq {:mvn/version "2.11.1276"}}
              :main-opts ["-m" "antq.core"]}
   :format {:deps {dev.weavejester/cljfmt {:mvn/version "0.16.3"}}
-           :main-opts ["-m" "cljfmt.main" "fix"]}}
+           :main-opts ["-m" "cljfmt.main" "fix"]}
+  :build {:deps {io.github.clojure/tools.build {:mvn/version "0.10.9"}
+                 slipset/deps-deploy {:mvn/version "0.2.2"}}
+          :ns-default build}}
 
  :mvn/repos
  {;; https://github.com/luposlip/json-schema
