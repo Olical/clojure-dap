@@ -1,4 +1,4 @@
-# Clojure CIDER DAP server
+# Clojure CIDER DAP server [![Clojars Project](https://img.shields.io/clojars/v/uk.me.oli/clojure-dap.svg)](https://clojars.org/uk.me.oli/clojure-dap)
 
 A Debug Adapter Protocol server for Clojure. Enables debugging UIs in Neovim, Helix, VS Code, and any other DAP-capable editor via CIDER's nREPL debug middleware.
 
@@ -11,17 +11,19 @@ A Debug Adapter Protocol server for Clojure. Enables debugging UIs in Neovim, He
 
 ## Installation
 
-For now, clone the repo and reference it locally. Future plans include Clojars publishing and GraalVM native image distribution once things stabilise.
+clojure-dap is published to [Clojars](https://clojars.org/uk.me.oli/clojure-dap). No separate install is needed — the Clojure CLI fetches and caches the dependency on first run. The server is started with:
 
 ```bash
-git clone https://github.com/Olical/clojure-dap.git
+clojure -Sdeps '{:deps {uk.me.oli/clojure-dap {:mvn/version "RELEASE"}}}' -X clojure-dap.main/run
 ```
 
-The server is started via the Clojure CLI with a local dep:
+Pin to a specific version for reproducibility:
 
 ```bash
-clojure -Sdeps '{:deps {clojure-dap/clojure-dap {:local/root "/path/to/clojure-dap"}}}' -X clojure-dap.main/run
+clojure -Sdeps '{:deps {uk.me.oli/clojure-dap {:mvn/version "0.1.311"}}}' -X clojure-dap.main/run
 ```
+
+Versions follow `0.1.<git-rev-count>` — each release is a higher number. Use `"RELEASE"` to always get the latest, or pin a version in your editor config for stability.
 
 ## Editor Setup
 
@@ -36,7 +38,7 @@ dap.adapters.clojure = {
   type = 'executable',
   command = 'clojure',
   args = {
-    '-Sdeps', '{:deps {clojure-dap/clojure-dap {:local/root "/path/to/clojure-dap"}}}',
+    '-Sdeps', '{:deps {uk.me.oli/clojure-dap {:mvn/version "RELEASE"}}}',
     '-X', 'clojure-dap.main/run',
   },
 }
@@ -62,7 +64,7 @@ name = "clojure"
 name = "clojure-dap"
 transport = "stdio"
 command = "clojure"
-args = ["-Sdeps", "{:deps {clojure-dap/clojure-dap {:local/root \"/path/to/clojure-dap\"}}}", "-X", "clojure-dap.main/run"]
+args = ["-Sdeps", "{:deps {uk.me.oli/clojure-dap {:mvn/version \"RELEASE\"}}}", "-X", "clojure-dap.main/run"]
 
 [[language.debugger.templates]]
 name = "Attach to nREPL"
@@ -72,7 +74,7 @@ args = {}
 
 ### VS Code
 
-An unpublished extension is included in `vscode-extension/`. Build and install it with `mise run vscode-package` then `code --install-extension vscode-extension/clojure-dap-0.0.1.vsix`. Set `clojure-dap.path` in VS Code settings to your checkout path.
+An unpublished extension is included in `vscode-extension/`. Build and install it with `mise run vscode-package` then `code --install-extension vscode-extension/clojure-dap-0.0.1.vsix`.
 
 ## Usage
 
