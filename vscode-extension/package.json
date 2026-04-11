@@ -23,10 +23,15 @@
     "configuration": {
       "title": "Clojure DAP",
       "properties": {
+        "clojure-dap.version": {
+          "type": "string",
+          "default": "RELEASE",
+          "description": "Version of clojure-dap to use from Clojars (e.g. \"0.1.311\" or \"RELEASE\" for latest)"
+        },
         "clojure-dap.path": {
           "type": "string",
           "default": "",
-          "description": "Path to your clojure-dap checkout (e.g. /home/user/clojure-dap)"
+          "description": "Path to a local clojure-dap checkout for development. Overrides the version setting when set."
         }
       }
     },
