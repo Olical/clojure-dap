@@ -18,6 +18,10 @@
                   :version version
                   :basis basis
                   :src-dirs ["src"]
+                  :pom-data [[:licenses
+                              [:license
+                               [:name "The Unlicense"]
+                               [:url "https://unlicense.org/"]]]]
                   :scm {:url "https://github.com/Olical/clojure-dap"
                         :connection "scm:git:git://github.com/Olical/clojure-dap.git"
                         :developerConnection "scm:git:ssh://git@github.com/Olical/clojure-dap.git"
