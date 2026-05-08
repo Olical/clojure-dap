@@ -2,7 +2,7 @@
   "name": "clojure-dap",
   "displayName": "Clojure DAP",
   "description": "Debug Adapter Protocol support for Clojure via CIDER nREPL",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "olical",
   "license": "Unlicense",
   "repository": {
@@ -20,6 +20,13 @@
   ],
   "main": "./extension.js",
   "contributes": {
+    "languages": [
+      {
+        "id": "clojure",
+        "extensions": [".clj", ".cljs", ".cljc", ".edn", ".bb"],
+        "aliases": ["Clojure"]
+      }
+    ],
     "configuration": {
       "title": "Clojure DAP",
       "properties": {
