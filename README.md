@@ -27,6 +27,10 @@ Versions follow `0.1.<git-rev-count>` — each release is a higher number. Use `
 
 ## Editor Setup
 
+clojure-dap is a standalone JVM the editor spawns when you start a debug session. It connects to your existing nREPL — start that however you like (Conjure, Calva, `lein repl`, `clj` with CIDER middleware, mise dev, etc.) so it writes `.nrepl-port` to your project root, and clojure-dap will pick the port up automatically. You can also pass `host`/`port` explicitly in the editor's attach config.
+
+> **Keep stdout clean.** The DAP server talks to the editor over stdio using JSON-RPC framing. The launch command itself must not print anything to stdout. The default `clojure -Sdeps … -X clojure-dap.main/run` invocation is safe; if you wrap it in your own script (e.g. for `mise`-managed Clojure) make sure that wrapper doesn't print banners, status, or its own logs to stdout.
+
 ### Neovim
 
 Requires [nvim-dap](https://github.com/mfussenegger/nvim-dap). See its docs for keybindings and UI options like [nvim-dap-ui](https://github.com/rcarriga/nvim-dap-ui).
@@ -74,7 +78,22 @@ args = {}
 
 ### VS Code
 
-An unpublished extension is included in `vscode-extension/`. Build and install it with `mise run vscode-package` then `code --install-extension vscode-extension/clojure-dap-0.0.1.vsix`.
+Install [Clojure DAP from the Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=olical.clojure-dap), or from the command line:
+
+```bash
+code --install-extension olical.clojure-dap
+```
+
+For development, you can build and install a local `.vsix` from the `vscode-extension/` directory with `mise run vscode-package`, then `code --install-extension vscode-extension/clojure-dap-<version>.vsix`.
+
+The extension spawns the DAP server on demand when you start a debug session. Two settings tune the launch:
+
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| `clojure-dap.command` | `clojure` | Executable launched as the DAP server. Set to an absolute path if your `clojure` binary isn't on the GUI PATH (mise/asdf users) or to a wrapper that activates project tooling. |
+| `clojure-dap.args` | `["-Sdeps", "{:deps {uk.me.oli/clojure-dap {:mvn/version \"RELEASE\"}}}", "-X", "clojure-dap.main/run"]` | Arguments passed to the launch command. Override the `:mvn/version` to pin a specific clojure-dap release. |
+
+Edit them from **Settings → Extensions → Clojure DAP**, scoped per workspace via the **Workspace** tab. Workspace settings land in `.vscode/settings.json`, so you can commit them with the project.
 
 ## Usage
 

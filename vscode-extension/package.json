@@ -2,7 +2,7 @@
   "name": "clojure-dap",
   "displayName": "Clojure DAP",
   "description": "Debug Adapter Protocol support for Clojure via CIDER nREPL",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "olical",
   "license": "Unlicense",
   "repository": {
@@ -23,15 +23,21 @@
     "configuration": {
       "title": "Clojure DAP",
       "properties": {
-        "clojure-dap.version": {
+        "clojure-dap.command": {
           "type": "string",
-          "default": "RELEASE",
-          "description": "Version of clojure-dap to use from Clojars (e.g. \"0.1.311\" or \"RELEASE\" for latest)"
+          "default": "clojure",
+          "description": "Executable launched as the DAP server. Defaults to `clojure` on PATH. Set to an absolute path if your `clojure` binary isn't on the GUI PATH (mise/asdf users) or to a wrapper that activates project tooling."
         },
-        "clojure-dap.path": {
-          "type": "string",
-          "default": "",
-          "description": "Path to a local clojure-dap checkout for development. Overrides the version setting when set."
+        "clojure-dap.args": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [
+            "-Sdeps",
+            "{:deps {uk.me.oli/clojure-dap {:mvn/version \"RELEASE\"}}}",
+            "-X",
+            "clojure-dap.main/run"
+          ],
+          "description": "Arguments passed to the launch command. The default pulls clojure-dap from Clojars at the latest release; override the :mvn/version to pin (e.g. \"0.1.311\")."
         }
       }
     },

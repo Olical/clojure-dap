@@ -44,6 +44,8 @@ mise run update-dap-schema                         # Fetch latest DAP JSON schem
 - **Case conversion**: Wire format uses PascalCase/camelCase; Clojure code uses kebab-case. `camel-snake-kebab` handles conversion. DAP JSON schema keys map to PascalCase Malli schema names.
 - **Async**: Manifold streams and deferreds. `util/with-thread` names threads for debugging. Message handling uses `d/future` via `s/connect-via` for thread pool execution.
 - **Logging**: All logging goes to stderr (stdout reserved for DAP protocol). Telemere (`tel/log!`) with SLF4J bridges captures all Java logging.
+- **Stdio hardening**: `main/setup-stdio!` runs first inside `main/run`. It captures the original `System.out` once into the `dap-stdout` defonce, then redirects `System.out` and `*out*` to stderr so any errant prints (telemere defaults, library banners, `println` in user code) can't corrupt the JSON-RPC framing. The DAP server is wired with `(io/writer dap-stdout)` so frames still reach the editor.
+- **Editor launch model**: clojure-dap is a standalone JVM the editor spawns per debug session. It does not need the project's classpath — it talks to the user's existing nREPL via TCP (reading `.nrepl-port` from cwd by default). The VS Code extension exposes `clojure-dap.command` (default `"clojure"`) and `clojure-dap.args` (default the inline `-Sdeps … -X clojure-dap.main/run` array), so the launch command is identical for every project. Build the .vsix with `mise vscode-package`.
 
 ## Testing
 

@@ -4,24 +4,16 @@ function activate(context) {
   context.subscriptions.push(
     vscode.debug.registerDebugAdapterDescriptorFactory("clojure-dap", {
       createDebugAdapterDescriptor(_session) {
+        const folders = vscode.workspace.workspaceFolders;
+        const cwd = folders && folders.length > 0 ? folders[0].uri.fsPath : undefined;
+
         const config = vscode.workspace.getConfiguration("clojure-dap");
-        const localPath = config.get("path");
-        const version = config.get("version");
+        const command = config.get("command");
+        const args = config.get("args") ?? [];
 
-        const dep = localPath
-          ? `clojure-dap/clojure-dap {:local/root "${localPath}"}`
-          : `uk.me.oli/clojure-dap {:mvn/version "${version}"}`;
-
-        const deps = `{:deps {${dep}}}`;
-
-        return new vscode.DebugAdapterExecutable("clojure", [
-          "-Sdeps",
-          deps,
-          "-X",
-          "clojure-dap.main/run",
-        ]);
+        return new vscode.DebugAdapterExecutable(command, args, cwd ? { cwd } : undefined);
       },
-    })
+    }),
   );
 }
 

@@ -7,11 +7,30 @@
             [malli.instrument :as mi]
             [manifold.stream :as s]
             [clojure-dap.util :as util]
-            [clojure-dap.server :as server]))
+            [clojure-dap.server :as server])
+  (:import [java.io PrintStream]))
+
+(defonce ^PrintStream dap-stdout System/out)
+
+(defn setup-stdio!
+  "Redirects System.out and *out* to stderr so anything that prints to stdout
+  (telemere defaults, library banners, errant println in user code) lands on
+  stderr instead of corrupting the DAP JSON-RPC transport. The original stdout
+  is held in dap-stdout for the DAP server to write frames to. Idempotent."
+  []
+  (System/setOut System/err)
+  (alter-var-root #'*out* (constantly *err*))
+  (tel/remove-handler! :default/console)
+  (tel/add-handler! :stderr
+                    (tel/handler:console
+                     {:stream :*err*
+                      :output-fn (tel/format-signal-fn {})})))
 
 (mx/defn run :- :nil
   "CLI entrypoint to the program, boots the system and handles any CLI args."
   [opts :- :map]
+
+  (setup-stdio!)
 
   (.addShutdownHook
    (Runtime/getRuntime)
@@ -20,15 +39,6 @@
       (tel/log! :info "Shutdown hook triggered, shutting down...")
       (shutdown-agents)
       (tel/log! :info "All done, goodbye!"))))
-
-  ;; Remove the default console handler since DAP communicates over stdout.
-  (tel/remove-handler! :default/console)
-
-  ;; Log to stderr so we don't interfere with DAP protocol on stdout.
-  (tel/add-handler! :stderr
-                    (tel/handler:console
-                     {:stream :*err*
-                      :output-fn (tel/format-signal-fn {})}))
 
   ;; TODO Make this cross platform and not conflict with other processes.
   ;; And will we end up with multiple processes sharing the same file?
@@ -48,7 +58,7 @@
   (let [{:keys [server-complete anomalies-stream]}
         (server/run-io-wrapped
          {:input-reader (io/reader System/in)
-          :output-writer (io/writer System/out)})]
+          :output-writer (io/writer dap-stdout)})]
     (s/consume #(tel/log! :error %) anomalies-stream)
     (tel/log! :info "Server started in single session mode (multi session mode will come later)")
     @server-complete)
