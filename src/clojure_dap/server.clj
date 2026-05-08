@@ -27,7 +27,7 @@
    :- [:map
        [:input-stream [:fn s/stream?]]
        [:output-stream [:fn s/stream?]]]]
-  (let [debuggee! (atom ::no-debuggee)
+  (let [debuggee! (atom nil)
         in-flight! (atom #{})]
 
     (letfn [(handle [input]
