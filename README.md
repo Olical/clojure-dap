@@ -113,6 +113,8 @@ Set `CLOJURE_DAP_LOG=/some/path/clojure-dap.log` to override. The resolved path 
 4. Trigger the breakpointed code from a REPL
 5. Inspect variables, evaluate expressions, step through code
 
+For an end-to-end walkthrough on a self-contained tiny project, see [`example/`](example/) — `clojure -M:dev` boots an nREPL with CIDER, `code .` opens the folder, F5 attaches.
+
 By default clojure-dap connects to `127.0.0.1` and reads the port from `.nrepl-port`. You can pass explicit connection options in the attach config:
 
 ```json
