@@ -1,0 +1,7 @@
+{:paths ["src"]
+ :deps {org.clojure/clojure {:mvn/version "1.12.4"}}
+
+ :aliases
+ {:dev {:extra-deps {nrepl/nrepl {:mvn/version "1.6.0"}
+                     cider/cider-nrepl {:mvn/version "0.58.0"}}
+        :main-opts ["-m" "dev.repl"]}}}

@@ -1,5 +1,7 @@
 /.cpcache/
 /.nrepl-port
+/example/.cpcache/
+/example/.nrepl-port
 /.clj-kondo/
 !/.clj-kondo/config.edn
 /.lsp/
