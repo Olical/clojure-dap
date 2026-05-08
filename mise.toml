@@ -12,6 +12,7 @@ description = "Format code with cljfmt"
 run = "clojure -M:format"
 
 [tasks.repl]
+raw = true
 description = "Start dev REPL with nREPL + CIDER + Rebel Readline"
 run = "clojure -X:test:repl giants-shoulders.repl/start!"
 
