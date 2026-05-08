@@ -2,13 +2,12 @@
   "Entrypoint for the actual program, handles starting of systems and CLI input."
   (:require [clojure.java.io :as io]
             [taoensso.telemere :as tel]
-            [me.raynes.fs :as rfs]
             [malli.experimental :as mx]
             [malli.instrument :as mi]
             [manifold.stream :as s]
             [clojure-dap.util :as util]
             [clojure-dap.server :as server])
-  (:import [java.io PrintStream]))
+  (:import [java.io File PrintStream]))
 
 (defonce ^PrintStream dap-stdout System/out)
 
@@ -26,6 +25,36 @@
                      {:stream :*err*
                       :output-fn (tel/format-signal-fn {})})))
 
+(defn log-path
+  "Resolves a sensible log file path for the current OS and ensures the parent
+  directory exists. Honors XDG_STATE_HOME on Linux, ~/Library/Logs on macOS,
+  and %LOCALAPPDATA% on Windows. The CLOJURE_DAP_LOG environment variable
+  overrides everything else."
+  []
+  (let [override (System/getenv "CLOJURE_DAP_LOG")
+        os (System/getProperty "os.name")
+        home (System/getProperty "user.home")
+        path (cond
+               override
+               override
+
+               (re-find #"(?i)win" os)
+               (str (or (System/getenv "LOCALAPPDATA")
+                        (str home File/separator "AppData" File/separator "Local"))
+                    File/separator "clojure-dap" File/separator "clojure-dap.log")
+
+               (re-find #"(?i)mac" os)
+               (str home "/Library/Logs/clojure-dap/clojure-dap.log")
+
+               :else
+               (str (or (System/getenv "XDG_STATE_HOME")
+                        (str home "/.local/state"))
+                    "/clojure-dap/clojure-dap.log"))
+        f (File. ^String path)]
+    (when-let [parent (.getParentFile f)]
+      (.mkdirs parent))
+    path))
+
 (mx/defn run :- :nil
   "CLI entrypoint to the program, boots the system and handles any CLI args."
   [opts :- :map]
@@ -40,13 +69,12 @@
       (shutdown-agents)
       (tel/log! :info "All done, goodbye!"))))
 
-  ;; TODO Make this cross platform and not conflict with other processes.
-  ;; And will we end up with multiple processes sharing the same file?
-  ;; Also nvim users sometimes move their cache dir, so we should write to our own maybe, or tmp.
-  (tel/add-handler! :file
-                    (tel/handler:file
-                     {:path (str (rfs/expand-home "~/.cache/nvim/clojure-dap.log"))
-                      :output-fn (tel/format-signal-fn {})}))
+  (let [path (log-path)]
+    (tel/add-handler! :file
+                      (tel/handler:file
+                       {:path path
+                        :output-fn (tel/format-signal-fn {})}))
+    (tel/log! :info ["Logging to" path]))
 
   (tel/set-min-level! :trace)
   (tel/log! :info ["Starting clojure-dap with configuration:" opts])

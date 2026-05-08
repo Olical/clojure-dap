@@ -95,6 +95,16 @@ The extension spawns the DAP server on demand when you start a debug session. Tw
 
 Edit them from **Settings → Extensions → Clojure DAP**, scoped per workspace via the **Workspace** tab. Workspace settings land in `.vscode/settings.json`, so you can commit them with the project.
 
+## Logs
+
+The DAP server logs at `:trace` level to a per-OS file path, plus stderr (which the editor captures). Defaults:
+
+- Linux: `${XDG_STATE_HOME:-~/.local/state}/clojure-dap/clojure-dap.log`
+- macOS: `~/Library/Logs/clojure-dap/clojure-dap.log`
+- Windows: `%LOCALAPPDATA%\clojure-dap\clojure-dap.log`
+
+Set `CLOJURE_DAP_LOG=/some/path/clojure-dap.log` to override. The resolved path is logged on startup so the editor's debug console shows it too.
+
 ## Usage
 
 1. Start your nREPL server with CIDER middleware

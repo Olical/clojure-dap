@@ -26,7 +26,7 @@ mise run update-dap-schema                         # Fetch latest DAP JSON schem
 
 ### Key modules
 
-- **`main.clj`** - CLI entrypoint. Configures Telemere logging (stderr + `~/.cache/nvim/clojure-dap.log`), enables Malli instrumentation, wires stdin/stdout to the server.
+- **`main.clj`** - CLI entrypoint. Configures Telemere logging (stderr + a per-OS file via `log-path`: XDG state on Linux, `~/Library/Logs/clojure-dap/` on macOS, `%LOCALAPPDATA%\clojure-dap\` on Windows; override with `CLOJURE_DAP_LOG`). Enables Malli instrumentation, wires stdin/stdout to the server.
 - **`server.clj`** - Orchestrates three manifold threads (reader, writer, message-reader) connected by streams. `run-io-wrapped` is the main entry; `run` handles message routing.
 - **`protocol.clj`** - Parses/renders DAP wire format. Validates all messages against the DAP JSON schema (converted to Malli). `supported-messages` lists all known message types.
 - **`schema.clj`** - Global Malli registry. Converts DAP JSON schema (`resources/clojure-dap/dap-json-schema.json`) to Malli schemas. Provides `result` wrapper type (value-or-anomaly) and `validate` function.
